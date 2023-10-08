@@ -2,7 +2,41 @@
 
 using System;
 
-class Program
+string[] validAnswers = { "+", "-", "*", "/", "%", "√" };
+int errorsMadeCount = 0;
+bool answerIsValid = false;
+while (answerIsValid == false && errorsMadeCount < 3)
+{
+    string Answer = Console.ReadLine();
+    int matchCount = 0;
+    foreach (string validValue in validAnswers)
+    {
+        if (Answer == validValue)
+        {
+            matchCount++;
+        }
+    }
+    // Check if there is exactly one match
+    if (matchCount == 1)
+    {
+        answerIsValid = true;
+    }
+    else
+    {
+        errorsMadeCount++;
+        Console.WriteLine("Введенный ответ не совпадает с предложенными опциями, пожалуйста, проверьте правильность написания мат. операции и попробуйте еще раз.");
+    }
+}
+if (answerIsValid == true)
+{
+    Console.WriteLine("cope");
+}
+else
+{
+    Console.WriteLine("fail");
+}
+
+/*class Program
 {
     static void Main()
     {
@@ -83,3 +117,4 @@ class Program
         
     }
 }
+*/
