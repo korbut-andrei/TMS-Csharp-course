@@ -1,223 +1,222 @@
-﻿
+﻿using System;
+
+
 class Program
 {
     static void Main()
     {
-        string options = @"Здравствуйте, выберите операцию из списка:
+        string[] validAnswers = { "+", "-", "*", "/", "%", "√" };
+        int maxAttempts = 3;
+
+        do
+        {
+            int attempts = 0;
+            bool usersAnswerValid = false;
+
+            while (!usersAnswerValid && attempts < maxAttempts)
+            {
+                string options = @"Здравствуйте, выберите операцию из списка:
 +
 -
 *
 /
 %"
 //вопрос про костыль для отображения иконки корня(?)
-+ "\n\u221A";
-        Console.WriteLine(options);
-        //Console.OutputEncoding = System.Text.Encoding.UTF8;
-        //Console.WriteLine("\u221A");
-        //\u221A16
-        //Отображение результата
++ "\n\u221A" + "\n";
+                Console.Write(options);
+                string usersAnswer = Console.ReadLine();
 
-        string[] validAnswers = { "+", "-", "*", "/", "%", "√" };
-        int errorsMadeCount = 0;
-        bool answerIsValid = false;
-        int matchCount = 0;
-        while (answerIsValid == false && errorsMadeCount < 3)
-        {
-            string Answer = Console.ReadLine();
-            //string test = Console.ReadLine();
-            foreach (string validValue in validAnswers)
-            {
-                if (Answer == validValue)
+                if (IsValidInput(usersAnswer, validAnswers))
                 {
-                    matchCount++;
+                    usersAnswerValid = true;
+
+                    switch (usersAnswer)
+                    {
+                        case "+":
+                            {
+                                Console.WriteLine("Введите первое значение - либо целое число, либо дробное число с использованием запятой.");
+                                float var1 = ValidateNumberInput();
+                                Console.WriteLine("Введите второе значение - либо целое число, либо дробное число с использованием запятой.");
+                                float var2 = ValidateNumberInput();
+                                float result = var1 + var2;
+                                Console.WriteLine("Результат:" + result);
+                            }
+                            break;
+                        case "-":
+                            {
+                                Console.WriteLine("Введите первое значение - либо целое число, либо дробное число с использованием запятой.");
+                                float var1 = ValidateNumberInput();
+                                Console.WriteLine("Введите второе значение - либо целое число, либо дробное число с использованием запятой.");
+                                float var2 = ValidateNumberInput();
+                                float result = var1 - var2;
+                                Console.WriteLine("Результат:" + result);
+                            }
+                            break;
+                        case "*":
+                            {
+                                Console.WriteLine("Введите первое значение - либо целое число, либо дробное число с использованием запятой.");
+                                float var1 = ValidateNumberInput();
+                                Console.WriteLine("Введите второе значение - либо целое число, либо дробное число с использованием запятой.");
+                                float var2 = ValidateNumberInput();
+                                float result = var1 * var2;
+                                Console.WriteLine("Результат:" + result);
+                            }
+                            break;
+                        case "/":
+                            {
+                                Console.WriteLine("Введите первое значение - либо целое число, либо дробное число с использованием запятой.");
+                                float var1 = ValidateNumberInput();
+                                Console.WriteLine("Введите второе значение - либо целое число, либо дробное число с использованием запятой.");
+                                float var2 = ValidateSecondNumberForNull();
+                                float result = var1 / var2;
+                                Console.WriteLine("Результат:" + result);
+                            }
+                            break;
+                        case "%":
+                            {
+                                Console.WriteLine("Введите число, часть от которого вы хотите посчитать");
+                                float var1 = ValidateSecondNumberForNull();
+                                Console.WriteLine("Введите часть от указанного числа, которую вы хотите видеть в процентах");
+                                float var2 = ValidateNumberInput();
+                                float result = (var2 / var1) * 100;
+                                Console.WriteLine("Результат:" + result + "%");
+                            }
+                            break;
+                        case "√":
+                            {
+                                Console.WriteLine("Введите число, квадратный корень котоорого вы хотите узнать");
+                                float var1 = ValidateNumberInput();
+                                double result = Math.Sqrt((double)var1);
+                                Console.WriteLine("√" + var1 + " = " + result);
+                            }
+                            break;
+                    }
+                }
+                else
+                {
+                    attempts++;
+                    Console.WriteLine($"Вы ввели неверное значение, попробуйте еще раз. Попыток {attempts}/{maxAttempts}.");
                 }
             }
-            // Check if there is exactly one match
-            if (matchCount == 1)
+
+            if (usersAnswerValid)
             {
-                answerIsValid = true;
+                Console.Write("Хотите попробовать еще раз? (Да/Нет): ");
+                string tryAgainResponse = Console.ReadLine();
+                if (tryAgainResponse != "Да")
+                {
+                    Console.WriteLine("Удачи!");
+                    break;
+                }
             }
             else
             {
-                errorsMadeCount++;
-                Console.WriteLine("Введенный ответ не совпадает с предложенными опциями, пожалуйста, проверьте правильность написания мат. операции и попробуйте еще раз.");
-            }
-        }
-        if (answerIsValid == true)
-        {
-            switch (Answer)
-            {
-                case "+":
-                    {
-                        Console.WriteLine("Введи первое число");
-                        string? s1 = Console.ReadLine();
-                        Console.WriteLine("Введи второе число");
-                        string? s2 = Console.ReadLine();
-                        var result = s1 + s1;
-                        Console.WriteLine("Сумма:" + result);
-                        if (s1 == null)
-                        {
-                            Console.WriteLine("null");
-                        }
-
-                        if (s1 == "")
-                        {
-                            Console.WriteLine("empty string");
-                        }
-                        break;
-                    }
-                default:
-                    Console.WriteLine("Операция не поддерживается");
+                Console.WriteLine("Хотите продолжить? (Да/Нет): ");
+                string continueResponse = Console.ReadLine();
+                if (continueResponse != "Да")
+                {
+                    Console.WriteLine("Удачи!");
                     break;
+                }
+            }
+
+        } while (true);
+    }
+
+    // Function to validate user input against an array of valid values
+    static bool IsValidInput(string input, string[] validAnswers)
+    {
+        foreach (string validValue in validAnswers)
+        {
+            if (input.Equals(validValue, StringComparison.OrdinalIgnoreCase))
+            {
+                return true; // Input is valid
             }
         }
-        else
-        {
-           
-        }
+        return false; // Input is not valid
+    }
 
+    static float ValidateNumberInput()
+    {
+        // Keep asking for input until a valid float is provided
+        while (true)
+        {
+            string input = Console.ReadLine();
+
+            // Check if the input is not empty or whitespace
+            if (!string.IsNullOrWhiteSpace(input))
+            {
+                // Try to parse the input to a float
+                if (float.TryParse(input, out float result))
+                {
+                    return result; // Exit the loop when a valid float is entered
+                }
+                else
+                {
+                    Console.WriteLine("Кажется вы ввели неверные данные, попробуйте ввести число еще раз.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Кажется вы ничего не ввели, попробуйте ввести число еще раз.");
+            }
+        }
+    }
+
+
+    static float ValidateSecondNumberForNull()
+    {
+        // Keep asking for input until a valid float is provided
+        while (true)
+        {
+            string input = Console.ReadLine();
+
+            // Check if the input is not empty or whitespace
+            if (!string.IsNullOrWhiteSpace(input))
+            {
+                // Try to parse the input to a float
+                if (float.TryParse(input, out float result))
+                {
+                    if (result != 0)
+                    {
+                        return result; // Exit the loop when a valid float is entered
+                    }
+                    else
+                    {
+                        Console.WriteLine("На ноль делить нельзя. Пожауйлста, введите другое число.");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Кажется вы ввели неверные данные, попробуйте ввести число еще раз.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Кажется вы ничего не ввели, попробуйте ввести число еще раз.");
+            }
+        }
     }
 }
-
-
 
 
 
 
 /*
-{
-    string options = @"Здравствуйте, выберите операцию из списка:
-+
--
-*
-/
-%" 
-+"\n\u221A";
-    Console.WriteLine(options);
-    //Console.OutputEncoding = System.Text.Encoding.UTF8;
-    //Console.WriteLine("\u221A");
-//\u221A16
-//Отображение результата
-
-    var choice = Console.ReadLine();
-
-    switch (choice)
-    {
-        case "+":
-            {
-                Console.WriteLine("Введи первое число");
-                string? s1 = Console.ReadLine();
-                Console.WriteLine("Введи второе число");
-                string? s2 = Console.ReadLine();
-                var result = s1 + s1;
-                Console.WriteLine("Сумма:" + result);
-                if (s1 == null)
-                {
-                    Console.WriteLine("null");
-                }
-
-                if (s1 == "")
-                {
-                    Console.WriteLine("empty string");
-                }
-                break;
-            }
-        case "-":
-            {
-                Console.WriteLine("Введи первое число");
-                string? s1 = Console.ReadLine();
-                Console.WriteLine("Введи второе число");
-                string? s2 = Console.ReadLine();
-                var result = s1 + s1;
-                Console.WriteLine("Сумма:" + result);
-                if (s1 == null)
-                {
-                    Console.WriteLine("null");
-                }
-
-                if (s1 == "")
-                {
-                    Console.WriteLine("empty string");
-                }
-                break;
-            }
-        case "*":
-            {
-                Console.WriteLine("Введи первое число");
-                string? s1 = Console.ReadLine();
-                Console.WriteLine("Введи второе число");
-                string? s2 = Console.ReadLine();
-                var result = s1 + s1;
-                Console.WriteLine("Сумма:" + result);
-                if (s1 == null)
-                {
-                    Console.WriteLine("null");
-                }
-
-                if (s1 == "")
-                {
-                    Console.WriteLine("empty string");
-                }
-                break;
-            }
-        default:
-            Console.WriteLine("Операция не поддерживается");
-                break;
-    }
-}
-
-static uint ReadUint()
-{ 
-while (true) 
-    {
-        var multAsText = Console.ReadLine();
-        uint number;
-        bool isParsed = uint.TryParse(multAsText, out number);
-        if (isParsed)
-        {
-            return number;
-        }
-        Console.WriteLine("Введи целое число"); 
-    }
-}
-
-static string ReadNotEmptyString()
-{
-    while (true)
-    {
-        var input = Console.ReadLine();
-        if (!string.IsNullOrWhiteSpace(input))
-        {
-            return input;
-        }
-        Console.WriteLine("Введите целое или дроное число с использованием запятой");
-    }
-}
-
-static bool DoOperation()
-{
-    Console.WriteLine("Введи операцию");
-    var operation = Console.ReadLine();
-    switch (operation) 
-    { 
-    
-    }
-    return true;
-}
-
-static bool DoOperations()
-{
-    while (true)
-    {
-        var result = DoOperation();
-        if (!result) 
-        { 
-        Console.WriteLine("Ты ввел не то");
-            break;
-        }
-
-    }
-    Console.WriteLine("Poka");
-    Console.ReadLine();
-}
+Console.WriteLine("Введите число, часть от которого вы хотите посчитать");
+string var1 = (Console.ReadLine());
+float floatvar1 = float.Parse(var1);
+decimal decimalVar1 = decimal.Parse(var1);
+Console.WriteLine("Введите часть от указанного числа, которую вы хотите видеть в процентах");
+string var2 = (Console.ReadLine());
+float floatvar2 = float.Parse(var2);
+decimal decimalvar2 = decimal.Parse(var2);
+float FloatDiv = floatvar2 / floatvar1;
+decimal DecimalDiv = decimal.Parse(var2) / decimal.Parse(var1);
+float FloatPer = FloatDiv * 100;
+decimal DecPer = DecimalDiv * 100;
+Console.WriteLine("Результат деления float:" + FloatDiv);
+Console.WriteLine("Результат деления decimal:" + DecimalDiv);
+Console.WriteLine("Результат % float:" + FloatPer);
+Console.WriteLine("Результат % decimal:" + DecPer);
 */
