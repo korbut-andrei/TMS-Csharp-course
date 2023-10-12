@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 
 
 class Program
@@ -35,57 +36,57 @@ class Program
                         case "+":
                             {
                                 Console.WriteLine("Введите первое значение - либо целое число, либо дробное число с использованием запятой.");
-                                float var1 = ValidateNumberInput();
+                                decimal var1 = ValidateNumberInput();
                                 Console.WriteLine("Введите второе значение - либо целое число, либо дробное число с использованием запятой.");
-                                float var2 = ValidateNumberInput();
-                                float result = var1 + var2;
+                                decimal var2 = ValidateNumberInput();
+                                decimal result = var1 + var2;
                                 Console.WriteLine("Результат:" + result);
                             }
                             break;
                         case "-":
                             {
                                 Console.WriteLine("Введите первое значение - либо целое число, либо дробное число с использованием запятой.");
-                                float var1 = ValidateNumberInput();
+                                decimal var1 = ValidateNumberInput();
                                 Console.WriteLine("Введите второе значение - либо целое число, либо дробное число с использованием запятой.");
-                                float var2 = ValidateNumberInput();
-                                float result = var1 - var2;
+                                decimal var2 = ValidateNumberInput();
+                                decimal result = var1 - var2;
                                 Console.WriteLine("Результат:" + result);
                             }
                             break;
                         case "*":
                             {
                                 Console.WriteLine("Введите первое значение - либо целое число, либо дробное число с использованием запятой.");
-                                float var1 = ValidateNumberInput();
+                                decimal var1 = ValidateNumberInput();
                                 Console.WriteLine("Введите второе значение - либо целое число, либо дробное число с использованием запятой.");
-                                float var2 = ValidateNumberInput();
-                                float result = var1 * var2;
+                                decimal var2 = ValidateNumberInput();
+                                decimal result = var1 * var2;
                                 Console.WriteLine("Результат:" + result);
                             }
                             break;
                         case "/":
                             {
                                 Console.WriteLine("Введите первое значение - либо целое число, либо дробное число с использованием запятой.");
-                                float var1 = ValidateNumberInput();
+                                decimal var1 = ValidateNumberInput();
                                 Console.WriteLine("Введите второе значение - либо целое число, либо дробное число с использованием запятой.");
-                                float var2 = ValidateSecondNumberForNull();
-                                float result = var1 / var2;
+                                decimal var2 = ValidateSecondNumberForNull();
+                                decimal result = var1 / var2;
                                 Console.WriteLine("Результат:" + result);
                             }
                             break;
                         case "%":
                             {
                                 Console.WriteLine("Введите число, часть от которого вы хотите посчитать");
-                                float var1 = ValidateSecondNumberForNull();
+                                decimal var1 = ValidateSecondNumberForNull();
                                 Console.WriteLine("Введите часть от указанного числа, которую вы хотите видеть в процентах");
-                                float var2 = ValidateNumberInput();
-                                float result = (var2 / var1) * 100;
+                                decimal var2 = ValidateNumberInput();
+                                decimal result = (var2 / var1) * 100;
                                 Console.WriteLine("Результат:" + result + "%");
                             }
                             break;
                         case "√":
                             {
                                 Console.WriteLine("Введите число, квадратный корень котоорого вы хотите узнать");
-                                float var1 = ValidateNumberInput();
+                                decimal var1 = ValidateNumberInput();
                                 double result = Math.Sqrt((double)var1);
                                 Console.WriteLine("√" + var1 + " = " + result);
                             }
@@ -136,7 +137,7 @@ class Program
         return false; // Input is not valid
     }
 
-    static float ValidateNumberInput()
+    static decimal ValidateNumberInput()
     {
         // Keep asking for input until a valid float is provided
         while (true)
@@ -147,7 +148,7 @@ class Program
             if (!string.IsNullOrWhiteSpace(input))
             {
                 // Try to parse the input to a float
-                if (float.TryParse(input, out float result))
+                if (decimal.TryParse(input, NumberStyles.Float, CultureInfo.InvariantCulture, out decimal result))
                 {
                     return result; // Exit the loop when a valid float is entered
                 }
@@ -164,7 +165,7 @@ class Program
     }
 
 
-    static float ValidateSecondNumberForNull()
+    static decimal ValidateSecondNumberForNull()
     {
         // Keep asking for input until a valid float is provided
         while (true)
@@ -175,7 +176,7 @@ class Program
             if (!string.IsNullOrWhiteSpace(input))
             {
                 // Try to parse the input to a float
-                if (float.TryParse(input, out float result))
+                if (decimal.TryParse(input, out decimal result))
                 {
                     if (result != 0)
                     {
