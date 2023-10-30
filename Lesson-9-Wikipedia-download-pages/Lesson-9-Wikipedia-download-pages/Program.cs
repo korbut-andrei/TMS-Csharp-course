@@ -10,8 +10,6 @@ char[] englishLetters = "abcdefghijklmnopqrstuvwxyz".ToCharArray();
 
 List<string> lettersCombinations = new List<string>();
 
-string targetDirectory = "C:\\Lesson-9";
-
 foreach (char c in englishLetters)
 {
     for (int i = 0; i < englishLetters.Length; i++)
