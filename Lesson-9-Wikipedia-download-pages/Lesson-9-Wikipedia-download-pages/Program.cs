@@ -12,35 +12,6 @@ List<string> lettersCombinations = new List<string>();
 
 string targetDirectory = "C:\\Lesson-9";
 
-try
-{
-    // Create a new DirectoryInfo object
-    DirectoryInfo dirInfo = new DirectoryInfo(targetDirectory);
-
-    // Get the directory's current access control list
-    DirectorySecurity dirSecurity = dirInfo.GetAccessControl();
-
-    // Add a rule to allow write access
-    FileSystemAccessRule accessRule = new FileSystemAccessRule(
-        new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null),
-        FileSystemRights.Write,
-        InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
-        PropagationFlags.None,
-        AccessControlType.Allow);
-
-    // Add the access rule to the directory's access control list
-    dirSecurity.AddAccessRule(accessRule);
-
-    // Apply the modified access control list to the directory
-    dirInfo.SetAccessControl(dirSecurity);
-
-    Console.WriteLine("Permissions added successfully.");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"An error occurred: {ex.Message}");
-}
-
 foreach (char c in englishLetters)
 {
     for (int i = 0; i < englishLetters.Length; i++)
