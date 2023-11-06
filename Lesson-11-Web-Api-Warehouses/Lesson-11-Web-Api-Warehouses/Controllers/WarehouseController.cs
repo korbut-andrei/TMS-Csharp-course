@@ -19,9 +19,24 @@ public class WarehouseController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult AddItemToWarehouseById([FromBody] int itemId, int warehouseId, int quantity)
+    public IActionResult AddItemToWarehouseByIdAndQuantity(int itemId, int warehouseId, int quantity)
     {
-        var result = warehouseService.AddItemToWarehouseById(itemId, warehouseId, quantity);
+        var result = warehouseService.AddItemToWarehouseByIdAndQuantity(itemId, warehouseId, quantity);
+
+        if (result.Success)
+        {
+            return Ok(result);
+        }
+        else
+        {
+            return BadRequest(result);
+        }
+    }
+
+    [HttpPost]
+    public IActionResult RemoveItemFromWarehouseByIdAndQuantity(int itemId, int warehouseId, int quantity)
+    {
+        var result = warehouseService.RemoveItemFromWarehouseByIdAndQuantity(itemId, warehouseId, quantity);
 
         if (result.Success)
         {

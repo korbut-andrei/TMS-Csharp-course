@@ -1,4 +1,5 @@
 ﻿using Lesson_11_Web_Api_Warehouses.Models;
+using System.Collections.Generic;
 
 namespace Lesson_11_Web_Api_Warehouses.Services
 {
@@ -53,7 +54,7 @@ namespace Lesson_11_Web_Api_Warehouses.Services
             };
         }
 
-        public CommandResultModel AddItemToWarehouseById(int itemId, int warehouseId, int quantity)
+        public CommandResultModel AddItemToWarehouseByIdAndQuantity(int itemId, int warehouseId, int quantity)
         {
             // Find the target warehouse by WarehouseId
             Warehouse targetWarehouse = Warehouses.FirstOrDefault(w => w.WarehouseId == warehouseId);
@@ -98,6 +99,106 @@ namespace Lesson_11_Web_Api_Warehouses.Services
                 {
                     Success = true,
                     Message = $"{quantity} x {targetItem.Name}/{targetItem.Color} has been added to the {targetWarehouse.Name}",
+                };
+            }
+        }
+
+        public CommandResultModel RemoveItemFromWarehouseByIdAndQuantity(int itemId, int warehouseId, int quantity)
+        {
+            // Find the target warehouse by WarehouseId
+            Warehouse targetWarehouse = Warehouses.FirstOrDefault(w => w.WarehouseId == warehouseId);
+            Item targetItem = itemService.GetItemById(itemId);
+
+            if (targetItem == null)
+            {
+                // Handle the case where the warehouse with the given WarehouseId doesn't exist
+                return new CommandResultModel
+                {
+                    Success = false,
+                    Message = "Item not found.",
+                };
+            }
+
+            if (targetWarehouse == null)
+            {
+                // Handle the case where the warehouse with the given WarehouseId doesn't exist
+                return new CommandResultModel
+                {
+                    Success = false,
+                    Message = "Warehouse not found.",
+                };
+            }
+
+            if (targetWarehouse.ItemsStored[itemId] < quantity)
+            {
+                // Handle the case where the warehouse with the given WarehouseId doesn't exist
+                return new CommandResultModel
+                {
+                    Success = false,
+                    Message = "The input quantity is more than available quantity of given item.",
+                };
+            }
+
+            // Check if the item with the given ItemId exists in the warehouse's ItemCounts
+            if (targetWarehouse.ItemsStored.ContainsKey(itemId))
+            {
+                // Item exists; increase its count by Quantity
+                targetWarehouse.ItemsStored[itemId] -= quantity;
+                return new CommandResultModel
+                {
+                    Success = true,
+                    Message = $"Count of {targetItem.Name}/{targetItem.Color} has been decreased by {quantity} in the {targetWarehouse.Name}. Remaining count: {targetWarehouse.ItemsStored[itemId]}",
+                };
+            }
+            else
+            {
+                return new CommandResultModel
+                {
+                    Success = false,
+                    Message = $"{targetItem.Name}/{targetItem.Color} is not present in the {targetWarehouse.Name}",
+                };
+            }
+        }
+
+        public CommandResultModel RemoveItemFromWarehouse(int itemId, int warehouseId)
+        {
+            // Find the target warehouse by WarehouseId
+            Warehouse targetWarehouse = Warehouses.FirstOrDefault(w => w.WarehouseId == warehouseId);
+            Item targetItem = itemService.GetItemById(itemId);
+
+            if (targetItem == null)
+            {
+                return new CommandResultModel
+                {
+                    Success = false,
+                    Message = "Item not found.",
+                };
+            }
+
+            if (targetWarehouse == null)
+            {
+                return new CommandResultModel
+                {
+                    Success = false,
+                    Message = "Warehouse not found.",
+                };
+            }
+
+            if (targetWarehouse.ItemsStored.ContainsKey(itemId))
+            {
+                targetWarehouse.ItemsStored.Remove(itemId);
+                return new CommandResultModel
+                {
+                    Success = true,
+                    Message = $"{targetItem.Name}/{targetItem.Color} has been removed from {targetWarehouse.Name} ",
+                };
+            }
+            else
+            {
+                return new CommandResultModel
+                {
+                    Success = false,
+                    Message = $"{targetItem.Name}/{targetItem.Color} is not present in the {targetWarehouse.Name}",
                 };
             }
         }

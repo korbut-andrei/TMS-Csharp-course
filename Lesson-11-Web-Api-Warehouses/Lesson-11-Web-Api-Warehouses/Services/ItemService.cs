@@ -19,14 +19,14 @@ namespace Lesson_11_Web_Api_Warehouses.Services
                 };
             }
 
-            if (item.HasRecliner != null || !item.HasRecliner is bool)
+            /*if ((!item.HasRecliner is not null))
             {
                 return new CommandResultModel
                 {
                     Success = false,
                     Message = "HasRecliner field is empty or invalid value for boolean field",
                 };
-            }
+            }*/
 
             if (string.IsNullOrWhiteSpace(item.Name))
             {
