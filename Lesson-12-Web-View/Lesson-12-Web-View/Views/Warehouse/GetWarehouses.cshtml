@@ -1,0 +1,28 @@
+﻿<!-- GetWarehouses.cshtml -->
+@model WarehouseList
+
+@{
+    ViewData["Title"] = "Warehouse List";
+}
+
+<h2>Warehouse List</h2>
+
+<p>Total Warehouses: @Model.Count</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Warehouse ID</th>
+            <th>Name</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var warehouse in Model.Warehouses)
+        {
+            <tr>
+                <td>@warehouse.WarehouseId</td>
+                <td>@warehouse.Name</td>
+            </tr>
+        }
+    </tbody>
+</table>

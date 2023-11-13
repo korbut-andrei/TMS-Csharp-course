@@ -1,0 +1,27 @@
+﻿<!-- ItemDetails.cshtml -->
+@model Item
+
+@{
+    ViewData["Title"] = "Item Details";
+}
+
+<h2>Item Details</h2>
+
+<form asp-action="ItemDetails" method="post">
+    <div class="form-group">
+        <label asp-for="ItemId">Enter Item ID:</label>
+        <input asp-for="ItemId" class="form-control" />
+        <span asp-validation-for="ItemId" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Get Item Details</button>
+</form>
+
+@if (Model != null)
+{
+    <div>
+        <p><strong>Item ID:</strong> @Model.ItemId</p>
+        <p><strong>Name:</strong> @Model.Name</p>
+        <p><strong>Color:</strong> @Model.Color</p>
+        <p><strong>Has Recliner:</strong> @Model.HasRecliner</p>
+    </div>
+}

@@ -1,0 +1,33 @@
+﻿<!-- WarehouseItemsByID.cshtml -->
+@model WarehouseItemsViewModel
+
+@{
+    ViewData["Title"] = "Warehouse Items";
+}
+
+<h2>Warehouse Items</h2>
+
+<form asp-action="WarehouseItemsByID" method="post">
+    <!-- Warehouse dropdown list -->
+    <div class="form-group">
+        <label for="SelectedWarehouseId">Select Warehouse:</label>
+        <select name="SelectedWarehouseId" class="form-control" asp-items="Model.WarehouseList">
+            <option value="">-- Select Warehouse --</option>
+        </select>
+    </div>
+
+    <!-- Submit button -->
+    <button type="submit" class="btn btn-primary">Show Items</button>
+</form>
+
+<!-- Display items if selected -->
+@if (Model.ItemsStored != null)
+{
+    <h3>Items in Warehouse</h3>
+    <ul>
+        @foreach (var item in Model.ItemsStored)
+        {
+            <li>Item ID: @item.Key, Count: @item.Value</li>
+        }
+    </ul>
+}

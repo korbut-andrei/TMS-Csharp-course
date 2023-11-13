@@ -1,0 +1,30 @@
+﻿<!-- AddItem.cshtml -->
+@model AddItem
+
+@{
+    ViewData["Title"] = "Add Item";
+}
+
+<h2>Add Item</h2>
+
+<form asp-action="AddItem" method="post">
+    <div class="form-group">
+        <label asp-for="Name"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Color"></label>
+        <input asp-for="Color" class="form-control" />
+        <span asp-validation-for="Color" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="HasRecliner"></label>
+        <input asp-for="HasRecliner" type="checkbox" />
+        <span asp-validation-for="HasRecliner" class="text-danger"></span>
+    </div>
+
+    <button type="Submit" class="btn btn-primary">Add Item</button>
+</form>

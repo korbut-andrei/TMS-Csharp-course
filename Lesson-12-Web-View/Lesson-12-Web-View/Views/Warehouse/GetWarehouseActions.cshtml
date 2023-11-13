@@ -1,0 +1,14 @@
+﻿@model IEnumerable<string>
+
+@{
+    ViewData["Title"] = "Warehouse actions";
+}
+
+<h2>Warehouses</h2>
+
+<ul>
+    @foreach (var actionName in Model)
+    {
+        <li><a asp-action="@actionName">@actionName</a></li>
+    }
+</ul>

@@ -1,0 +1,77 @@
+﻿@model RemoveItemModel
+
+@{
+    ViewData["Title"] = "Remove Item from Warehouse";
+}
+
+<h2>Remove Item from Warehouse</h2>
+
+<form asp-action="RemoveItemFromWarehouseByIdAndQuantity" method="post">
+    <!-- Warehouse dropdown list -->
+    <div class="form-group">
+        <label for="SelectedWarehouseId">Select Warehouse:</label>
+        <select name="SelectedWarehouseId" class="form-control" required>
+            <option value="">-- Select Warehouse --</option>
+            @foreach (var warehouse in Model.WarehouseList)
+            {
+                <option value="@warehouse.Value">@warehouse.Text</option>
+            }
+        </select>
+    </div>
+
+    <!-- Item dropdown list -->
+    <div class="form-group">
+        <label for="SelectedItemId">Select Item:</label>
+        <select name="SelectedItemId" class="form-control" required>
+            <option value="">-- Select Item --</option>
+            @foreach (var item in Model.ItemList)
+            {
+                <option value="@item.Value">@item.Text</option>
+            }
+        </select>
+    </div>
+
+    <!-- Quantity input field -->
+    <div class="form-group">
+        <label for="Quantity">Quantity:</label>
+        <input type="number" name="Quantity" class="form-control" required>
+    </div>
+
+    <!-- Submit button -->
+    <button type="submit" class="btn btn-danger">Remove Item</button>
+</form>
+
+<script>
+    // Handle form submission
+    document.getElementById("removeItemForm").addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        // Create an object to hold the form data
+        const formData = {
+            SelectedWarehouseId: document.getElementById("SelectedWarehouseId").value,
+            SelectedItemId: document.getElementById("SelectedItemId").value,
+            Quantity: document.getElementById("Quantity").value
+        };
+
+        // Send a POST request to the server
+        fetch(event.target.action, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                // Display an alert based on the response
+                if (data.success) {
+                    alert("Success: " + data.message);
+                } else {
+                    alert("Error: " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
+    });
+</script>

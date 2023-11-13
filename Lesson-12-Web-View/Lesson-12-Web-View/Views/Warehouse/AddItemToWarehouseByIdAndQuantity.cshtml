@@ -1,0 +1,34 @@
+﻿@model CombinedItemModel
+
+@{
+    ViewData["Title"] = "Add Item To Warehouse By Id And Quantity";
+}
+
+<h2>Add Item to Warehouse</h2>
+
+<form asp-action="AddItemToWarehouseByIdAndQuantity" method="post">
+    <!-- Warehouse dropdown list -->
+    <div class="form-group">
+        <label for="WarehouseModel.WarehouseId">Select Warehouse:</label>
+        <select asp-for="WarehouseModel.WarehouseId" asp-items="@Model.WarehouseList" class="form-control" required>
+            <option value="">-- Select Warehouse --</option>
+        </select>
+    </div>
+
+    <!-- Item dropdown list -->
+    <div class="form-group">
+        <label for="ItemModel.ItemId">Select Item:</label>
+        <select asp-for="ItemModel.ItemId" asp-items="@Model.ItemList" class="form-control" required>
+            <option value="">-- Select Item --</option>
+        </select>
+    </div>
+
+    <!-- Quantity input field -->
+    <div class="form-group">
+        <label for="Quantity">Quantity:</label>
+        <input asp-for="Quantity" type="number" class="form-control" required>
+    </div>
+
+    <!-- Submit button -->
+    <button type="submit" class="btn btn-success">Add Item</button>
+</form>

@@ -1,0 +1,29 @@
+﻿@model ItemList
+
+@{
+    ViewData["Title"] = "Items";
+}
+
+<h2>item List</h2>
+
+<p>Total Warehouses: @Model.Count</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Warehouse ID</th>
+            <th>Name</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var warehouse in Model.Items)
+        {
+            <tr>
+                <td>@warehouse.ItemId</td>
+                <td>@warehouse.Name</td>
+                <td>@warehouse.Color</td>
+                <td>@warehouse.HasRecliner</td>
+            </tr>
+        }
+    </tbody>
+</table>
