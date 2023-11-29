@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Linq;
 
 /*List <int> numbersList = new List<int>();
 int[] numbersArray = new int[1];
@@ -60,11 +61,11 @@ Console.WriteLine("Введи количество потоков для пер�
 var numThreadsString2 = Console.ReadLine();
 int numThreadsInt2 = int.Parse(numThreadsString2);
 
-SumViaTasks(numThreadsInt1);
-SumViaTasks(numThreadsInt2);
+object locker = new object();
+await SumViaTasks(numThreadsInt1);
+await SumViaTasks(numThreadsInt2);
 
-
-void SumViaTasks(int threadsCount)
+async Task SumViaTasks(int threadsCount)
 {
     int numThreads = threadsCount;
 
@@ -77,7 +78,6 @@ void SumViaTasks(int threadsCount)
     totalStopwatch.Start();
 
     long totalElapsedTime = 0;
-    long totalSum = 0;
 
     for (int i = 0; i < numThreads; i++)
     {
@@ -85,26 +85,32 @@ void SumViaTasks(int threadsCount)
         int endIndex = (i == numThreads - 1) ? numbers.Length : (i + 1) * chunkSize;
         int totalTimeUsed = 0;
 
-        tasks[i] = Task.Factory.StartNew(() =>
+        int taskNumber = i;
+
+        tasks[taskNumber] = Task.Factory.StartNew(() =>
         {
             Stopwatch taskStopwatch = new Stopwatch();
             taskStopwatch.Start();
 
             long result = SumChunk(numbers, startIndex, endIndex);
-            totalSum += result;
 
             taskStopwatch.Stop();
 
-            Console.WriteLine($"Task {i + 1} completed in {taskStopwatch.ElapsedMilliseconds} milliseconds");
+            Console.WriteLine($"Task {taskNumber + 1} completed in {taskStopwatch.ElapsedMilliseconds} milliseconds");
 
-            totalElapsedTime += taskStopwatch.ElapsedMilliseconds;
+            lock (locker)
+            {
+                totalElapsedTime += taskStopwatch.ElapsedMilliseconds;
+            }
 
             return result;
         });
     }
 
     // Wait for all tasks to complete
-    Task.WaitAll(tasks);
+    var sums = await Task.WhenAll(tasks);
+
+    long totalSum = sums.Sum();
 
     totalStopwatch.Stop();
 
