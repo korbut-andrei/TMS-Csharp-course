@@ -10,5 +10,6 @@ namespace Lesson_17_Entity_Framework.Models
         }
 
         public DbSet<Professions> Professions { get; set;}
+        public DbSet<Reviews> Reviews { get; set; }
     }
 }

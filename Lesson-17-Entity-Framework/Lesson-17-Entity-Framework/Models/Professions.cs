@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.Extensions.Hosting;
+using System.ComponentModel.DataAnnotations;
 
 namespace Lesson_17_Entity_Framework.Models
 {
@@ -15,5 +16,7 @@ namespace Lesson_17_Entity_Framework.Models
 
         [Required]
         public string Description { get; set; }
+
+        public ICollection<Reviews>? Reviews { get; set; }
     }
 }
