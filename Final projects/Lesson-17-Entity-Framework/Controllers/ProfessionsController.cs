@@ -1,4 +1,4 @@
-﻿using Lesson_17_Entity_Framework.Entities;
+﻿using Lesson_17_Entity_Framework.Entities.DbContexts;
 using Lesson_17_Entity_Framework.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -51,7 +51,7 @@ namespace Lesson_17_Entity_Framework.Controllers
                     }).ToArray(),
                 });
 
-            var prop = typeof(CareerEntity).GetProperty(filterField);
+            var prop = typeof(Entities.UserEntity).GetProperty(filterField);
 
             // Apply filtering based on the request
             if (prop != null) 
@@ -128,7 +128,7 @@ namespace Lesson_17_Entity_Framework.Controllers
 
         [HttpGet]
         [Route("GetProfession")]
-        public CareerEntity GetProfession(int id)
+        public Entities.UserEntity GetProfession(int id)
         {
             return _db.Professions.Where(x => x.Id == id).FirstOrDefault();
         }
@@ -145,7 +145,7 @@ namespace Lesson_17_Entity_Framework.Controllers
 
             };
 
-            var entity = new CareerEntity
+            var entity = new Entities.UserEntity
             {
 
                 Name = model.Name,
@@ -167,7 +167,7 @@ namespace Lesson_17_Entity_Framework.Controllers
 
         [HttpPut]
         [Route("UpdateProfession")]
-        public string UpdateProfession(CareerEntity profession)
+        public string UpdateProfession(Entities.UserEntity profession)
         {
             _db.Entry(profession).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
             _db.SaveChanges();
@@ -183,7 +183,7 @@ namespace Lesson_17_Entity_Framework.Controllers
             if (ModelState.IsValid)
             {
                 // Retrieve the profession by ID
-                CareerEntity professionToDelete = _db.Professions.Find(id);
+                Entities.UserEntity professionToDelete = _db.Professions.Find(id);
 
                 // Check if the profession exists
                 if (professionToDelete != null)

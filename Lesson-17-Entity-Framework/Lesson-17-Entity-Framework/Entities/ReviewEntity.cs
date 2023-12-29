@@ -2,9 +2,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.Reflection.Metadata;
 
-namespace Lesson_17_Entity_Framework.Models
+namespace Lesson_17_Entity_Framework.Entities
 {
-    public class Reviews
+    public class ReviewEntity
     {
         [Key]
         public int Id { get; set; }
@@ -16,6 +16,6 @@ namespace Lesson_17_Entity_Framework.Models
         [Required]
         public string ProfessionId { get; set; }
 
-        public Professions Profession { get; set; }
+        public CareerEntity Profession { get; set; }
     }
 }

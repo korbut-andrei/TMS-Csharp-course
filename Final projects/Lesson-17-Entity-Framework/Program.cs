@@ -1,4 +1,4 @@
-using Lesson_17_Entity_Framework.Entities;
+using Lesson_17_Entity_Framework.Entities.DbContexts;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);

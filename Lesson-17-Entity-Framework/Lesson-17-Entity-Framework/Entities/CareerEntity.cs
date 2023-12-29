@@ -1,12 +1,14 @@
 ﻿using Microsoft.Extensions.Hosting;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Lesson_17_Entity_Framework.Models
+namespace Lesson_17_Entity_Framework.Entities
 {
-    public class Professions
+    public class CareerEntity
     {
-       [Key]
-       public int Id { get; set; }
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; }
         [Required]
         public string Name { get; set; }
 
@@ -17,6 +19,6 @@ namespace Lesson_17_Entity_Framework.Models
         [Required]
         public string Description { get; set; }
 
-        public ICollection<Reviews>? Reviews { get; set; }
+        public ICollection<ReviewEntity>? Reviews { get; set; }
     }
 }

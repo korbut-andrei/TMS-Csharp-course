@@ -1,29 +1,85 @@
-﻿using Lesson_17_Entity_Framework.Entities;
-using Lesson_17_Entity_Framework.Models;
+﻿using Final_project.Entities;
+using Final_project.Entities.DbContexts;
+using Final_project.Models;
+using Final_project.Models.Auth;
+using Final_project.Models.POST;
+using Final_project.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.ComponentModel.DataAnnotations;
+using System.Net;
 using System.Reflection;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
-namespace Lesson_17_Entity_Framework.Controllers
+namespace Final_project.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/Careers")]
     [ApiController]
-    public class ProfessionsController : ControllerBase
+    public class CareerController : ControllerBase
     {
+        private readonly CareerService _careerService;
 
-        private readonly CareerContext _db;
-
-        public ProfessionsController(CareerContext professionsContext)
+        public CareerController(CareerContext careerContext, CareerService careerService)
         {
-            this._db = professionsContext;
+            _careerService = careerService;
         }
 
-    [HttpGet]
-    public async Task<ActionResult<ProfessionsListModel>> GetProfessions(
+        [Authorize(Roles = UserRoles.Admin)]
+        [HttpPost]
+        [Route("AddCareer")]
+        public async Task<IActionResult> AddCareer([FromForm] AddCareerModel addCareerModel)
+        {
+            var result = await _careerService.AddCareer(addCareerModel);
+
+            if (result.Success)
+            {
+                return new OkObjectResult(new
+                {
+                    message = "Career has been created successfully.",
+                    careerEntity = result.CareerEntity
+                });
+            }
+            else
+            {
+                return new ObjectResult(new { error = result.ErrorMessage })
+                {
+                    StatusCode = (int)HttpStatusCode.InternalServerError
+                };
+            }
+        }
+
+        [Authorize(Roles = UserRoles.Admin)]
+        [HttpPost]
+        [Route("EditCareer")]
+        public async Task<IActionResult> EditCareer([FromForm] EditCareerModel editCareerModel)
+        {
+            var result = await _careerService.EditCareer(editCareerModel);
+
+            if (result.Success)
+            {
+                return new OkObjectResult(new
+                {
+                    message = "Career has been edited successfully.",
+                    careerEntity = result.CareerEntity
+                });
+            }
+            else
+            {
+                return new ObjectResult(new { error = result.ErrorMessage })
+                {
+                    StatusCode = (int)HttpStatusCode.InternalServerError
+                };
+            }
+        }
+
+
+
+        /*
+        [HttpGet]
+        public async Task<ActionResult<ProfessionsListModel>> GetProfessions(
             [FromQuery][Required] int page,
             [FromQuery][Required] int rowsPerPage,
             [FromQuery] string sortField = null,
@@ -51,7 +107,7 @@ namespace Lesson_17_Entity_Framework.Controllers
                     }).ToArray(),
                 });
 
-            var prop = typeof(CareerEntity).GetProperty(filterField);
+            var prop = typeof(Entities.UserEntity).GetProperty(filterField);
 
             // Apply filtering based on the request
             if (prop != null) 
@@ -128,46 +184,14 @@ namespace Lesson_17_Entity_Framework.Controllers
 
         [HttpGet]
         [Route("GetProfession")]
-        public CareerEntity GetProfession(int id)
+        public Entities.UserEntity GetProfession(int id)
         {
             return _db.Professions.Where(x => x.Id == id).FirstOrDefault();
         }
 
-        [HttpPost]
-        [Route("AddProfession")]
-        public async Task<ProfessionModel> AddProfession(ProfessionAddDto profession)
-        {
-
-            var model = new ProfessionAddDto
-            {
-                Name = profession.Name,
-                Description = profession.Description,
-
-            };
-
-            var entity = new CareerEntity
-            {
-
-                Name = model.Name,
-                Description = model.Description
-
-            };
-
-            await _db.AddAsync(entity);
-            await _db.SaveChangesAsync();
-
-
-            return new ProfessionModel
-            {
-                Id = entity.Id,
-                Name = entity.Name,
-                Description = entity.Description,
-            };
-        }
-
         [HttpPut]
         [Route("UpdateProfession")]
-        public string UpdateProfession(CareerEntity profession)
+        public string UpdateProfession(Entities.UserEntity profession)
         {
             _db.Entry(profession).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
             _db.SaveChanges();
@@ -183,7 +207,7 @@ namespace Lesson_17_Entity_Framework.Controllers
             if (ModelState.IsValid)
             {
                 // Retrieve the profession by ID
-                CareerEntity professionToDelete = _db.Professions.Find(id);
+                Entities.UserEntity professionToDelete = _db.Professions.Find(id);
 
                 // Check if the profession exists
                 if (professionToDelete != null)
@@ -204,5 +228,6 @@ namespace Lesson_17_Entity_Framework.Controllers
                 return "Invalid model state. Please provide a valid ID.";
             }
         }
+        */
     }
 }
