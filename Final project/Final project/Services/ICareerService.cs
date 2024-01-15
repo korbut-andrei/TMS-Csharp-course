@@ -10,6 +10,11 @@ namespace Final_project.Services
         Task<CareerServiceResponseModel> AddCareer(AddCareerModel addCareerModel);
 
         Task<CareerServiceResponseModel> EditCareer(EditCareerModel editCareerModel);
+        
+        Task<GetDetailsCareerServiceResponseModel> GetCareer(int careerId);
+
+        Task<CareerServiceResponseModel> DeleteCareer(int careerId);
+
 
     }
 }

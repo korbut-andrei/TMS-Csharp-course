@@ -2,7 +2,10 @@
 using Final_project.Entities.DbContexts;
 using Final_project.Models;
 using Final_project.Models.Auth;
+using Final_project.Models.General;
+using Final_project.Models.GET_models;
 using Final_project.Models.POST;
+using Final_project.Models.QueryModels;
 using Final_project.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -39,12 +42,12 @@ namespace Final_project.Controllers
                 return new OkObjectResult(new
                 {
                     message = "Career has been created successfully.",
-                    careerEntity = result.CareerEntity
+                    careerEntity = result.Career
                 });
             }
             else
             {
-                return new ObjectResult(new { error = result.ErrorMessage })
+                return new ObjectResult(new { error = result.ServerMessage })
                 {
                     StatusCode = (int)HttpStatusCode.InternalServerError
                 };
@@ -62,19 +65,74 @@ namespace Final_project.Controllers
             {
                 return new OkObjectResult(new
                 {
-                    message = "Career has been edited successfully.",
-                    careerEntity = result.CareerEntity
+                    message = result.ServerMessage,
+                    careerEntity = result.Career
                 });
             }
             else
             {
-                return new ObjectResult(new { error = result.ErrorMessage })
+                return new ObjectResult(new { error = result.ServerMessage })
                 {
                     StatusCode = (int)HttpStatusCode.InternalServerError
                 };
             }
         }
 
+        [HttpPost]
+        [Route("GetCareer")]
+        public async Task<IActionResult> GetCareer([FromQuery] int careerId)
+        {
+            var result = await _careerService.GetCareer(careerId);
+
+            if (result.Success)
+            {
+                return new OkObjectResult(new
+                {
+                    message = result.ServerMessage,
+                    careerEntity = result.Career
+                });
+            }
+            else
+            {
+                return new ObjectResult(new { error = result.ServerMessage })
+                {
+                    StatusCode = (int)HttpStatusCode.InternalServerError
+                };
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = UserRoles.Admin)]
+        [Route("GetCareer")]
+        public async Task<IActionResult> DeleteCareer([FromQuery] int careerId)
+        {
+            var result = await _careerService.DeleteCareer(careerId);
+
+            if (result.Success)
+            {
+                return new OkObjectResult(new
+                {
+                    message = result.ServerMessage,
+                    careerEntity = result.Career
+                });
+            }
+            else
+            {
+                return new ObjectResult(new { error = result.ServerMessage })
+                {
+                    StatusCode = (int)HttpStatusCode.InternalServerError
+                };
+            }
+        }
+
+    public async Task<IActionResult> GetCareersByDynamicFiltersAndCategories(
+    [FromQuery] List<GetCareersListCharacteristicFilterParameters>? filterParameters,
+    [FromQuery] string[]? categoryNames,
+    [FromQuery] AverageRatingRange? averageRatingRange,
+    [FromQuery] SalaryRange? salaryRange,
+    [FromQuery] SalaryFilterQuery? salaryFilterQuery,
+    [FromQuery] EducationTimeRange? educationTime
+    )
 
 
         /*

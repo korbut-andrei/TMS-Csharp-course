@@ -1,6 +1,14 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Final_project.Entities;
+using Final_project.Models.General;
+using Final_project.Models.GET_models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq.Expressions;
 
 namespace Final_project.Entities
 {
@@ -17,13 +25,11 @@ namespace Final_project.Entities
         public string Group { get; set; }
 
         public string Type { get; set; }
-
-        public int? AverageRating { get; set; }
-
-        public string? AverageRatingString { get; set; }
-
-        [ForeignKey("CareerId")]
-        public int CareerId { get; set; }
-        public virtual CareerEntity CareerEntity { get; set; }
     }
 }
+
+
+
+
+
+

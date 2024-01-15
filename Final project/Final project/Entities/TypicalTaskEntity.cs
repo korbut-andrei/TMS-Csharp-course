@@ -17,5 +17,7 @@ namespace Final_project.Entities
         [ForeignKey("CareerId")]
         public int CareerId { get; set; }
         public virtual CareerEntity CareerEntity { get; set; }
+
+        public virtual ICollection<TypicalTaskReview> ReviewBulletPoints { get; set; }
     }
 }

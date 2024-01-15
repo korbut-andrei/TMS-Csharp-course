@@ -38,7 +38,7 @@ namespace Final_project.Entities.DbContexts
                 .HasForeignKey(e => e.CareerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<CareerCharacteristicEntity>()
+            modelBuilder.Entity<CareerCharacteristicReviewEntity>()
                 .HasOne(e => e.CareerEntity)
                 .WithMany()
                 .HasForeignKey(e => e.CareerId)

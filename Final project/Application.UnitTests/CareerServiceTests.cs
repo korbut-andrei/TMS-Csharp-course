@@ -59,8 +59,8 @@ namespace Application.UnitTests
 
             // Assert
             Assert.False(result.Success);
-            Assert.Null(result.CareerEntity);
-            Assert.Contains("Invalid file type. Only JPEG or PNG files are allowed.", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+            Assert.Null(result.Career);
+            Assert.Contains("Invalid file type. Only JPEG or PNG files are allowed.", result.ServerMessage, StringComparison.OrdinalIgnoreCase);
         }
 
     }

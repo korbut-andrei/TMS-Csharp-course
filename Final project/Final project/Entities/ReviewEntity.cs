@@ -13,15 +13,22 @@ namespace Final_project.Entities
         public int Id { get; set; }
         public string Text { get; set; }
 
-        public string Rating { get; set; }
+        public decimal Rating { get; set; }
         public bool IsDeleted { get; set; }
         [ForeignKey("UserId")]
         public int UserId { get; set; }
+        public bool IsApproved { get; set; }
 
         public virtual UserEntity UserEntity { get; set; }
 
         [ForeignKey("CareerId")]
         public int CareerId { get; set; }
         public virtual CareerEntity CareerEntity { get; set; }
+
+        // Navigation property for ReviewBulletPointEntity
+        public virtual ICollection<ReviewBulletPointEntity> ReviewBulletPoints { get; set; }
+
+        public DateTime DateTimeInUtc { get; set; }
+
     }
 }
