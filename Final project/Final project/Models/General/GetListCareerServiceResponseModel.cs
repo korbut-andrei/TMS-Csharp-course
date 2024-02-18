@@ -8,5 +8,7 @@ namespace Final_project.Models.General
         public bool Success { get; set; }
         public string ServerMessage { get; set; }
         public CareerListModel[] Careers { get; set; }
+
+        public int? totalPages { get; set; }
     }
 }
