@@ -6,7 +6,7 @@ namespace Final_project.Models.General
     {
         public bool Success { get; set; }
         public string ServerMessage { get; set; }
-        public CareerEntity Career { get; set; }
+        public CareerEntity? Career { get; set; }
 
     }
 }

@@ -17,10 +17,10 @@ namespace Final_project.Controllers
             _categoryService = categoryService;
         }
 
-        [Authorize(Roles = UserRoles.Admin)]
+        //[Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [Route("AddCategory")]
-        public async Task<IActionResult> AddCareer([FromForm] AddCategoryModel addCategoryModel)
+        public async Task<IActionResult> AddCategory([FromForm] AddCategoryModel addCategoryModel)
         {
             return await _categoryService.AddCategory(addCategoryModel);
         }

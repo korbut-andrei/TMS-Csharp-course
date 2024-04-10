@@ -11,6 +11,8 @@ using Final_project.Services;
 var builder = WebApplication.CreateBuilder(args);
 ConfigurationManager configuration = builder.Configuration;
 
+configuration.AddJsonFile("appsettings.local.json", true);
+
 // Add services to the container.
 
 // For Entity Framework
@@ -47,6 +49,8 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddScoped<CareerService>();
 builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<ImageService>();
+builder.Services.AddScoped<DbRecordsCheckService>();
 builder.Services.AddControllers();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

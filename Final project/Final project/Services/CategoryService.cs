@@ -4,6 +4,7 @@ using Final_project.Models.POST;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
+using Final_project.Models.General;
 
 namespace Final_project.Services
 {
@@ -13,9 +14,15 @@ namespace Final_project.Services
 
         private readonly CareerContext _dbContext;
 
-        public CategoryService(CareerContext dbContext)
+        private readonly ImageService _imageService;
+
+        private readonly DbRecordsCheckService _imageDbRecordsCheckService;
+
+        public CategoryService(CareerContext dbContext, ImageService imageService, DbRecordsCheckService imageDbRecordsCheckService)
         {
             _dbContext = dbContext;
+            _imageService = imageService;
+            _imageDbRecordsCheckService = imageDbRecordsCheckService;
         }
 
         public async Task<IActionResult> AddCategory(AddCategoryModel addCategoryModel)
@@ -27,38 +34,29 @@ namespace Final_project.Services
                     return new BadRequestObjectResult("You need to upload a Category image");
                 }
 
-                // Validate file type
-                if (!IsFileOfTypeValid(addCategoryModel.CategoryImage))
-                {
-                    return new BadRequestObjectResult("Invalid file type. Only JPEG or PNG files are allowed.");
-                }
-
                 if (string.IsNullOrWhiteSpace(addCategoryModel.Name))
                 {
                     return new BadRequestObjectResult("Career name can't be empty.");
                 }
-                if (IsNameUnique(addCategoryModel.Name))
+                if (_imageDbRecordsCheckService.RecordExistsInDatabase(addCategoryModel.Name, "Categories", "Name"))
                 {
                     return new BadRequestObjectResult("Category with such name already exists.");
                 }
 
-                using (var stream = new MemoryStream())
-                {
-                    addCategoryModel.CategoryImage.CopyTo(stream);
-                    string base64ImageData = Convert.ToBase64String(stream.ToArray());
+                var imageData = await _imageService.AddImage(addCategoryModel.CategoryImage);
 
-                    // Process the base64ImageData and save it to the database if needed
-                    // Example: Save to database
-                    var careerDto = new AddCategoryDto
+                if (!imageData.Success)
+                {
+                    return new ObjectResult(new { error = $"Internal server error: {imageData.ServerMessage}" })
+                    {
+                        StatusCode = (int)HttpStatusCode.InternalServerError
+                    };
+                }
+
+                var categoryEntity = new CategoryEntity
                     {
                         Name = addCategoryModel.Name,
-                        CategoryImage = base64ImageData,
-                    };
-
-                    var categoryEntity = new CategoryEntity
-                    {
-                        Name = careerDto.Name,
-                        CategoryImage = careerDto.CategoryImage,
+                        ImageId = imageData.ImageId,
                     };
 
                     _dbContext.Categories.Add(categoryEntity);
@@ -70,7 +68,6 @@ namespace Final_project.Services
                         message = "Category created successfully",
                         categoryEntity = categoryEntity
                     });
-                }
             }
             catch (Exception ex)
             {
@@ -79,21 +76,6 @@ namespace Final_project.Services
                     StatusCode = (int)HttpStatusCode.InternalServerError
                 };
             }
-        }
-
-        private bool IsFileOfTypeValid(IFormFile file)
-        {
-            // Add logic to check if the file type is JPEG or PNG
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png" };
-            var extension = Path.GetExtension(file.FileName).ToLower();
-
-            return allowedExtensions.Contains(extension);
-        }
-
-        private bool IsNameUnique(string name)
-        {
-            // Check if a record with the given name already exists
-            return _dbContext.Categories.Any(e => e.Name == name);
         }
     }
 }

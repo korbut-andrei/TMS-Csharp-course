@@ -4,6 +4,7 @@ using Final_project.Models;
 using Final_project.Models.Auth;
 using Final_project.Models.General;
 using Final_project.Models.GET_models;
+using Final_project.Models.GETmodels;
 using Final_project.Models.POST;
 using Final_project.Models.QueryModels;
 using Final_project.Services;
@@ -25,7 +26,7 @@ namespace Final_project.Controllers
     {
         private readonly CareerService _careerService;
 
-        public CareerController(CareerContext careerContext, CareerService careerService)
+        public CareerController(CareerService careerService)
         {
             _careerService = careerService;
         }
@@ -103,7 +104,7 @@ namespace Final_project.Controllers
 
         [HttpPost]
         [Authorize(Roles = UserRoles.Admin)]
-        [Route("GetCareer")]
+        [Route("DeleteCareer")]
         public async Task<IActionResult> DeleteCareer([FromQuery] int careerId)
         {
             var result = await _careerService.DeleteCareer(careerId);
@@ -125,29 +126,14 @@ namespace Final_project.Controllers
             }
         }
 
+        
         [HttpGet]
         [Route("GetListOfCareers")]
         public async Task<IActionResult> GetListOfCareers(
-            [Required] int page,
-            [Required] int rowsPerPage,
-            [Required] string sorting,
-            GetCareersListCharacteristicFilterParameters[]? filterParameters,
-            string[]? categoryNames,
-            AverageRatingRange? averageRatingRange,
-            SalaryFilterQuery? salaryFilterQuery,
-            EducationTimeRange? educationTimeRange
-            )
+        [Required] GetCareersListQueryModel queryParameters
+        )
         {
-            var result = await _careerService.GetListOfCareers(
-            page,
-            rowsPerPage,
-            sorting,
-            filterParameters,
-            categoryNames,
-            averageRatingRange,
-            salaryFilterQuery,
-            educationTimeRange
-            );
+            var result = await _careerService.GetListOfCareers(queryParameters);
 
             if (result.Success)
             {
@@ -155,7 +141,7 @@ namespace Final_project.Controllers
                 {
                     message = result.ServerMessage,
                     careers = result.Careers,
-                    totalPages = result.totalPages
+                    totalPages = result.TotalPages
                 });
             }
             else
@@ -165,7 +151,6 @@ namespace Final_project.Controllers
                     StatusCode = (int)HttpStatusCode.InternalServerError
                 };
             }
-
         }
     }
 }

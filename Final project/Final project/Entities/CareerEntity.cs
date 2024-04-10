@@ -1,4 +1,5 @@
 ﻿using Final_project.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using System.ComponentModel.DataAnnotations;
@@ -17,8 +18,11 @@ namespace Final_project.Entities
         [ForeignKey("CategoryId")]
         public int CategoryId { get; set; }
         public virtual CategoryEntity CategoryEntity { get; set; }
-        public string Base64ImageData { get; set; }
         public bool IsDeleted { get; set; }
+
+        [ForeignKey("ImageId")]
+        public int ImageId { get; set; }
+        public virtual ImageEntity ImageEntity { get; set; }
 
     }
 }

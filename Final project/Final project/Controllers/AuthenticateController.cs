@@ -69,9 +69,6 @@ namespace Final_project.Controllers
         [Route("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
-            var userExists = await _userManager.FindByNameAsync(model.Username);
-            if (userExists != null)
-                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User already exists!" });
 
             IdentityUser user = new()
             {
@@ -81,7 +78,16 @@ namespace Final_project.Controllers
             };
             var result = await _userManager.CreateAsync(user, model.Password);
             if (!result.Succeeded)
-                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
+            {
+                var errorsWithNumbers = result.Errors
+                    .Select((error, index) => $"{index + 1}. {error.Description}");
+
+                var errorsMessage = string.Join(" ", errorsWithNumbers);
+                
+                return StatusCode(StatusCodes.Status400BadRequest, 
+                    new Response { Status = "Error", Message = $"{errorsMessage}" });
+
+            }
 
             return Ok(new Response { Status = "Success", Message = "User created successfully!" });
         }

@@ -7,6 +7,6 @@ namespace Final_project.Models.General
     {
         public bool Success { get; set; }
         public string ServerMessage { get; set; }
-        public CareerDetailsModel Career { get; set; }
+        public CareerDetailsModel? Career { get; set; }
     }
 }

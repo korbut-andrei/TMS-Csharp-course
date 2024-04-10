@@ -93,9 +93,21 @@ namespace Final_project.Entities.DbContexts
             modelBuilder.Entity<CareerCharacteristicEntity>()
                 .HasIndex(e => e.Name)
                 .IsUnique();
+
+            modelBuilder.Entity<CareerEntity>()
+                .HasOne(e => e.ImageEntity)
+                .WithOne()
+                .HasForeignKey<CareerEntity>(e => e.ImageId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CategoryEntity>()
+                .HasOne(e => e.ImageEntity)
+                .WithOne()
+                .HasForeignKey<CategoryEntity>(e => e.ImageId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
-        public virtual DbSet<CareerEntity> Careers { get; set; }
+        public DbSet<CareerEntity> Careers { get; set; }
         public DbSet<ReviewEntity> Reviews { get; set; }
         public DbSet<CareerCharacteristicEntity> Characteristics { get; set; }
         public DbSet<CareerCharacteristicReviewEntity> CharacteristicReviews { get; set; }
@@ -104,6 +116,8 @@ namespace Final_project.Entities.DbContexts
         public DbSet<ReviewBulletPointEntity> ReviewBulletPoints { get; set; }
         public DbSet<SalaryReportEntity> SalaryReports { get; set; }
         public DbSet<TypicalTaskEntity> TypicalTasks { get; set; }
-        public DbSet<UserEntity> Users { get; set; }    
+        public DbSet<UserEntity> Users { get; set; }
+        public DbSet<ImageEntity> Images { get; set; }
+
     }
 }

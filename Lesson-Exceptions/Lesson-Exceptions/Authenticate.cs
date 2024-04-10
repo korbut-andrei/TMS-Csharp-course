@@ -24,12 +24,12 @@ namespace Lesson_Exceptions
             catch (WrongLoginException ex)
             {
                 Console.WriteLine(ex.Message);
-                return false;
+                throw;
             }
             catch (WrongPasswordException ex)
             {
                 Console.WriteLine(ex.Message);
-                return false;
+                throw;
             }
         }
 

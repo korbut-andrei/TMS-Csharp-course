@@ -13,6 +13,6 @@ namespace Final_project.Models.POST
 
         public int CategoryId { get; set; }
 
-        public string CareerImage { get; set; }
+        public int ImageId { get; set; }
     }
 }

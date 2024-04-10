@@ -11,6 +11,9 @@ namespace Final_project.Entities
         public int Id { get; set; }
 
         public string Name { get; set; }
-        public string CategoryImage { get; set; }
+
+        [ForeignKey("ImageId")]
+        public int ImageId { get; set; }
+        public virtual ImageEntity ImageEntity { get; set; }
     }
 }

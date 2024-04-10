@@ -1,6 +1,7 @@
 ﻿using Final_project.Entities;
 using Final_project.Models.General;
 using Final_project.Models.GET_models;
+using Final_project.Models.GETmodels;
 using Final_project.Models.POST;
 using Final_project.Models.QueryModels;
 using Microsoft.AspNetCore.Mvc;
@@ -19,16 +20,7 @@ namespace Final_project.Services
         Task<CareerServiceResponseModel> DeleteCareer(int careerId);
 
         Task<GetListCareerServiceResponseModel> GetListOfCareers(
-            [Required] int page,
-            [Required] int rowsPerPage,
-            [Required] string sorting,
-            GetCareersListCharacteristicFilterParameters[]? filterParameters,
-            string[]? categoryNames,
-            AverageRatingRange? averageRatingRange,
-            SalaryFilterQuery? salaryFilterQuery,
-            EducationTimeRange? educationTimeRange
-            );
-
-
+        [Required] GetCareersListQueryModel queryParameters
+        );
     }
 }

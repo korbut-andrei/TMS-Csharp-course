@@ -34,10 +34,13 @@ namespace Lesson_Exceptions
                 catch (WrongLoginException ex)
                 {
                     Console.WriteLine($"{nameof(WrongLoginException)}: {ex.Message}");
+                    Console.WriteLine(ex.StackTrace);
+
                 }
                 catch (WrongPasswordException ex)
                 {
                     Console.WriteLine($"{nameof(WrongPasswordException)}: {ex.Message}");
+                    Console.WriteLine(ex.StackTrace);
                 }
             }
         }

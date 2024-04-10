@@ -3,6 +3,6 @@
     public class AddCategoryDto
     {
         public string Name { get; set; }
-        public string CategoryImage { get; set; }
+        public int ImageId { get; set; }
     }
 }
