@@ -18,11 +18,11 @@ namespace Final_project.Entities
         [ForeignKey("CategoryId")]
         public int CategoryId { get; set; }
         public virtual CategoryEntity CategoryEntity { get; set; }
+
         public bool IsDeleted { get; set; }
 
         [ForeignKey("ImageId")]
         public int ImageId { get; set; }
         public virtual ImageEntity ImageEntity { get; set; }
-
     }
 }

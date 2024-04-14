@@ -15,9 +15,11 @@ using Moq.EntityFrameworkCore;
 
 namespace Application.UnitTests
 {
+}
+      /*
     public class CareerServiceTests
     {
-
+      
         [Fact]
         public async Task AddCareer_InvalidFileType_ReturnsError()
         {

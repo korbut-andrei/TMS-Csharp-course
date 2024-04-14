@@ -12,7 +12,10 @@ namespace Final_project.Entities
 
         public string? Base64ImageData { get; set; }
 
-        public virtual ICollection<CareerEntity> Careers { get; set; }
-        public virtual ICollection<CategoryEntity> Categories { get; set; }
+        public virtual CareerEntity Career { get; set; }
+
+        public virtual CategoryEntity Category { get; set; }
+
+
     }
 }

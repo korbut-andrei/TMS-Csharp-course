@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Reflection.Emit;
+using System.Reflection.Metadata;
 
 namespace Final_project.Entities.DbContexts
 {
@@ -30,6 +31,13 @@ namespace Final_project.Entities.DbContexts
                 .HasOne(e => e.CategoryEntity)
                 .WithMany()
                 .HasForeignKey(e => e.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+
+            modelBuilder.Entity<ReviewBulletPointEntity>()
+                .HasOne(e => e.ReviewEntity)
+                .WithMany()
+                .HasForeignKey(e => e.ReviewId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<ReviewEntity>()
@@ -94,17 +102,15 @@ namespace Final_project.Entities.DbContexts
                 .HasIndex(e => e.Name)
                 .IsUnique();
 
-            modelBuilder.Entity<CareerEntity>()
-                .HasOne(e => e.ImageEntity)
-                .WithOne()
-                .HasForeignKey<CareerEntity>(e => e.ImageId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Configure ReviewEntity
+            modelBuilder.Entity<ReviewEntity>()
+                .Property(r => r.Rating)
+                .HasColumnType("decimal(18,2)"); // Specify the precision and scale
 
-            modelBuilder.Entity<CategoryEntity>()
-                .HasOne(e => e.ImageEntity)
-                .WithOne()
-                .HasForeignKey<CategoryEntity>(e => e.ImageId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Configure CareerCharacteristicReviewEntity
+            modelBuilder.Entity<CareerCharacteristicReviewEntity>()
+                .Property(r => r.Rating)
+                .HasColumnType("decimal(18,2)"); // Specify the precision and scale
         }
 
         public DbSet<CareerEntity> Careers { get; set; }

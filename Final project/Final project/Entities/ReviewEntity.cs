@@ -15,19 +15,18 @@ namespace Final_project.Entities
 
         public decimal Rating { get; set; }
         public bool IsDeleted { get; set; }
+
         [ForeignKey("UserId")]
         public int UserId { get; set; }
-        public bool IsApproved { get; set; }
-
         public virtual UserEntity UserEntity { get; set; }
+
+        public bool IsApproved { get; set; }
 
         [ForeignKey("CareerId")]
         public int CareerId { get; set; }
         public virtual CareerEntity CareerEntity { get; set; }
 
-        // Navigation property for ReviewBulletPointEntity
-        public virtual ICollection<ReviewBulletPointEntity> ReviewBulletPoints { get; set; }
-
+        public virtual ICollection<ReviewBulletPointEntity> ReviewBulletPoints { get; } = new List<ReviewBulletPointEntity>();
         public DateTime DateTimeInUtc { get; set; }
 
     }
