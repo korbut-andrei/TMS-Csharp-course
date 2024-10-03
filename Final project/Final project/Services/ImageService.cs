@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Mime;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace Final_project.Services
@@ -25,7 +26,7 @@ namespace Final_project.Services
         {
             try
             {
-                if (image != null || image.Length > 0)
+                if (image != null && image.Length > 0)
                 {
                     // Validate file type
                     if (!IsFileOfTypeValid(image))
@@ -40,13 +41,14 @@ namespace Final_project.Services
 
                     var transformedImage = await TransformIFileToB64String(image);
 
-                        var imageEntity = new ImageEntity
-                        {
-                            Base64ImageData = transformedImage
-                        };
+                    var imageEntity = new ImageEntity
+                    {
+                        Base64ImageData = transformedImage,
+                        //FileName = image.FileName
+                    };
 
                     _dbContext.Images.Add(imageEntity);
-                    await _dbContext.SaveChangesAsync();
+                    await _dbContext.SaveChangesAsync(); // Save changes to get the generated Id
 
                     return new ImageResponseModel
                     {
@@ -65,40 +67,51 @@ namespace Final_project.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Exception in AddCareer: {ex.Message}");
                 return new ImageResponseModel
                 {
                     Success = false,
-                    ImageId = 0,
-                    ServerMessage = $"Internal server error: {ex.Message}"
+                    ImageId = 0,    
+                    ServerMessage = $"{ex.Message}"
                 };
-            
         }
 }
 
         public async Task<ImageResponseModel> GetImage(int imageId)
         {
-            var image = await _dbContext.Images.FindAsync(imageId);
+            try
+            {
+                var image = await _dbContext.Images.FindAsync(imageId);
 
-            if (image == null)
+                if (image == null)
+                {
+                    return new ImageResponseModel
+                    {
+                        Success = false,
+                        ImageId = 0,
+                        ServerMessage = $"Image with id {imageId} not found."
+                    };
+                }
+
+                var imageFile = await TransformB64StringToIFile(image.Base64ImageData);
+
+                return new ImageResponseModel
+                {
+                    Success = true,
+                    ImageId = imageId,
+                    Image = imageFile,
+                    ServerMessage = $"Image {imageId} has been successfully found."
+                };
+            }
+            catch (Exception ex)
             {
                 return new ImageResponseModel
                 {
                     Success = false,
                     ImageId = 0,
-                    ServerMessage = $"Image with id {imageId} not found."
+                    Image = null,
+                    ServerMessage = $"Error appeared during image extraction: {ex.Message}"
                 };
             }
-
-            var imageFile = await TransformB64StringToIFile(image.Base64ImageData);
-
-            return new ImageResponseModel
-            {
-                Success = true,
-                ImageId = imageId,
-                Image = imageFile,
-                ServerMessage = $"Image {imageId} has been successfully found."
-            };
         }
 
         public async Task<ImageResponseModel> DeleteImage(int imageId)
@@ -156,21 +169,64 @@ namespace Final_project.Services
         private async Task<IFormFile> TransformB64StringToIFile(string base64ImageData)
         {
 
-            IFormFile formFile = null;
-
-            // Decode the Base64 string into a byte array
-            byte[] fileBytes = Convert.FromBase64String(base64ImageData);
-
-            // Create a MemoryStream from the byte array
-            using (MemoryStream memoryStream = new MemoryStream(fileBytes))
+            try
             {
-                // Create an IFormFile
-                formFile = new FormFile(memoryStream, 0, memoryStream.Length, "CareerImage", "CareerImage.jpg");
+                //IFormFile formFile = null;
+                
+                byte[] JPG = { 255, 216, 255 };
+                
+                byte[] PNG = { 137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82 };
 
-                // Now you can use the 'formFile' as needed, for example, save it to disk, process it, etc.
+                byte[] fileBytes = Convert.FromBase64String(base64ImageData);
+                
+                string fileExtension = "";
+
+                string contentType = "";
+
+                if (fileBytes.Take(3).SequenceEqual(JPG))
+                {
+                    fileExtension = "jpeg";
+                    contentType = "image/jpeg";
+
+                }
+                else if (fileBytes.Take(16).SequenceEqual(PNG))
+                {
+                    fileExtension = "png";
+                    contentType = "image/png";
+
+                }
+                // Set default file extension if no match is found
+                if (string.IsNullOrEmpty(fileExtension))
+                {
+                    fileExtension = "application/octet-stream";
+                    contentType = "application/octet-stream";
+
+                }
+
+                // Generate a unique file name
+                string fileName = $"CareerImage_{Guid.NewGuid()}.{fileExtension}";
+
+                IHeaderDictionary headers = new HeaderDictionary();
+
+
+                // Create a MemoryStream from the byte array
+                using (MemoryStream memoryStream = new MemoryStream(fileBytes))
+                {
+                    // Create an IFormFile
+                    IFormFile  formFile = new FormFile(memoryStream, 0, memoryStream.Length, "CareerImage", fileName)
+                    {
+                        Headers = headers, // Assign the initialized headers to the FormFile object
+                        ContentType = contentType
+                    };
+
+                    return formFile;
+                }
+
             }
-
-            return formFile;
+            catch (Exception ex) 
+            {
+                throw;
+            }
         }
 
 

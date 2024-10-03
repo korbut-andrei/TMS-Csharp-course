@@ -12,7 +12,7 @@ namespace Final_project.Entities
 
         public string Name { get; set; }
 
-        [ForeignKey("ImageId")]
+        //[ForeignKey("ImageId")]
         public int ImageId { get; set; }
         public virtual ImageEntity ImageEntity { get; set; }
 

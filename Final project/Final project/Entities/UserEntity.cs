@@ -5,16 +5,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Final_project.Entities
 {
-    public class UserEntity
+    public class UserEntity : IdentityUser<int>
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
-
-        public string? Base64ImageData { get; set; }
-
-        [ForeignKey("UserId")]
-        public int UserId { get; set; }
-        public virtual IdentityUser IdentityUser { get; set; }
+        public int? ImageId { get; set; }
+        public string? Country { get; set; }
+        public virtual ICollection<RefreshToken> RefreshTokens { get; set; }
     }
 }

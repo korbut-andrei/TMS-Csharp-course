@@ -26,8 +26,7 @@ namespace Final_project.Entities
         public int CareerId { get; set; }
         public virtual CareerEntity CareerEntity { get; set; }
 
-        public virtual ICollection<ReviewBulletPointEntity> ReviewBulletPoints { get; } = new List<ReviewBulletPointEntity>();
+        public virtual ICollection<ReviewBulletPointEntity> ReviewBulletPoints { get; set; }
         public DateTime DateTimeInUtc { get; set; }
-
     }
 }

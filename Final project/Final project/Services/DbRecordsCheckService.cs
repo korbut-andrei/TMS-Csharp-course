@@ -40,7 +40,6 @@ namespace Final_project.Services
 
             try
             {
-                // Convert value to the property's type
                 var convertedValue = Expression.Constant(Convert.ChangeType(value, property.PropertyType));
 
                 var equality = Expression.Equal(propertyAccess, convertedValue);
@@ -50,7 +49,7 @@ namespace Final_project.Services
                                                   .First(method => method.Name == "Any" && method.GetParameters().Length == 2)
                                                   .MakeGenericMethod(elementType);
                 var result = (bool)anyMethod.Invoke(null, new object[] { dbSet, lambda });
-
+                \   
                 return result;
             }
             catch (InvalidCastException)

@@ -21,7 +21,7 @@ namespace Final_project.Entities
 
         public bool IsDeleted { get; set; }
 
-        [ForeignKey("ImageId")]
+        //[ForeignKey("ImageId")]
         public int ImageId { get; set; }
         public virtual ImageEntity ImageEntity { get; set; }
     }

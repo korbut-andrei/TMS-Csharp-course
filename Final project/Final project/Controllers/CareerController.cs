@@ -1,5 +1,6 @@
 ﻿using Final_project.Entities;
 using Final_project.Entities.DbContexts;
+using Final_project.Enums;
 using Final_project.Models;
 using Final_project.Models.Auth;
 using Final_project.Models.General;
@@ -31,7 +32,7 @@ namespace Final_project.Controllers
             _careerService = careerService;
         }
 
-        [Authorize(Roles = UserRoles.Admin)]
+        //[Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [Route("AddCareer")]
         public async Task<IActionResult> AddCareer([FromForm] AddCareerModel addCareerModel)
@@ -129,7 +130,7 @@ namespace Final_project.Controllers
         
         [HttpGet]
         [Route("GetListOfCareers")]
-        public async Task<IActionResult> GetListOfCareers(
+        public async Task<IActionResult> GetListOfCareers([FromQuery]
         [Required] GetCareersListQueryModel queryParameters
         )
         {

@@ -25,31 +25,48 @@ namespace Final_project.Services
             _imageDbRecordsCheckService = imageDbRecordsCheckService;
         }
 
-        public async Task<IActionResult> AddCategory(AddCategoryModel addCategoryModel)
+        public async Task<CategoryServiceResponseModel> AddCategory(AddCategoryModel addCategoryModel)
         {
             try
             {
                 if (addCategoryModel.CategoryImage == null || addCategoryModel.CategoryImage.Length == 0)
                 {
-                    return new BadRequestObjectResult("You need to upload a Category image");
+                    return new CategoryServiceResponseModel
+                    {
+                        Success = false,
+                        Category = null,
+                        ServerMessage = $"You need to upload a Category image."
+                    };
                 }
 
                 if (string.IsNullOrWhiteSpace(addCategoryModel.Name))
                 {
-                    return new BadRequestObjectResult("Career name can't be empty.");
+                    return new CategoryServiceResponseModel
+                    {
+                        Success = false,
+                        Category = null,
+                        ServerMessage = $"Career name can't be empty."
+                    };
                 }
                 if (_imageDbRecordsCheckService.RecordExistsInDatabase(addCategoryModel.Name, "Categories", "Name"))
                 {
-                    return new BadRequestObjectResult("Category with such name already exists.");
+                    return new CategoryServiceResponseModel
+                    {
+                        Success = false,
+                        Category = null,
+                        ServerMessage = $"Category with such name already exists."
+                    };
                 }
 
                 var imageData = await _imageService.AddImage(addCategoryModel.CategoryImage);
 
                 if (!imageData.Success)
                 {
-                    return new ObjectResult(new { error = $"Internal server error: {imageData.ServerMessage}" })
+                    return new CategoryServiceResponseModel
                     {
-                        StatusCode = (int)HttpStatusCode.InternalServerError
+                        Success = false,
+                        Category = null,
+                        ServerMessage = $"{imageData.ServerMessage}"
                     };
                 }
 
@@ -62,18 +79,20 @@ namespace Final_project.Services
                     _dbContext.Categories.Add(categoryEntity);
                     await _dbContext.SaveChangesAsync();
 
-
-                    return new OkObjectResult(new
-                    {
-                        message = "Category created successfully",
-                        categoryEntity = categoryEntity
-                    });
+                return new CategoryServiceResponseModel
+                {
+                    Success = true,
+                    Category = categoryEntity,
+                    ServerMessage = $"Category has been created successfully."
+                };
             }
             catch (Exception ex)
             {
-                return new ObjectResult(new { error = $"Internal server error: {ex.Message}" })
+                return new CategoryServiceResponseModel
                 {
-                    StatusCode = (int)HttpStatusCode.InternalServerError
+                    Success = false,
+                    Category = null,
+                    ServerMessage = $"Internal server error: {ex.Message}"
                 };
             }
         }

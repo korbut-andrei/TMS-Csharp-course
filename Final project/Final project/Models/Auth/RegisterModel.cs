@@ -13,5 +13,9 @@ namespace Final_project.Models.Auth
 
         [Required(ErrorMessage = "Password is required")]
         public string? Password { get; set; }
+
+        public IFormFile? ProfileImage { get; set; }
+
+        public string? Country { get; set; }
     }
 }

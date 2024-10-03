@@ -69,11 +69,6 @@ namespace Application.UnitTests
 }
 
 
-
-
-
-
-
     /*
 // Arrange
             var dbContextOptions = new DbContextOptionsBuilder<CareerContext>().UseInMemoryDatabase(databaseName: "TestDatabase").Options;

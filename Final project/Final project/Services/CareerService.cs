@@ -1,5 +1,6 @@
 ﻿using Final_project.Entities;
 using Final_project.Entities.DbContexts;
+using Final_project.Enums;
 using Final_project.Models.General;
 using Final_project.Models.GET_models;
 using Final_project.Models.GETmodels;
@@ -22,6 +23,7 @@ using System.Linq.Expressions;
 using System.Net;
 using System.Reflection.PortableExecutable;
 using System.Runtime.ConstrainedExecution;
+using System.Text;
 using System.Xml.Linq;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
@@ -29,19 +31,21 @@ namespace Final_project.Services
 {
     public class CareerService : ICareerService
     {
-        public List<CareerEntity> Careers { get; } = new List<CareerEntity>();
-
         private readonly CareerContext _dbContext;
 
         private readonly ImageService _imageService;
 
+        private readonly HashHelper _hashHelper;
+
+
         private readonly DbRecordsCheckService _dbRecordsCheckService;
 
-        public CareerService(CareerContext dbContext, ImageService imageService, DbRecordsCheckService dbRecordsCheckService)
+        public CareerService(CareerContext dbContext, ImageService imageService, DbRecordsCheckService dbRecordsCheckService, HashHelper hashHelper)
         {
             _dbContext = dbContext;
             _imageService = imageService;
             _dbRecordsCheckService = dbRecordsCheckService;
+            _hashHelper = hashHelper;
         }
 
         public async Task<CareerServiceResponseModel> AddCareer(AddCareerModel addCareerModel)
@@ -85,7 +89,7 @@ namespace Final_project.Services
                         ServerMessage = $"Career categoryId can't be empty."
                     };
                 }
-                if (_dbRecordsCheckService.RecordExistsInDatabase(addCareerModel.CategoryId, "Categories", "Id"))
+                if (!_dbRecordsCheckService.RecordExistsInDatabase(addCareerModel.CategoryId, "Categories", "Id"))
                 {
                     return new CareerServiceResponseModel
                     {
@@ -116,20 +120,12 @@ namespace Final_project.Services
                     };
                 }
 
-                var careerDto = new CareerDto
+                var careerEntity = new CareerEntity
                 {
                     Name = addCareerModel.Name,
                     Description = addCareerModel.Description,
                     CategoryId = addCareerModel.CategoryId,
-                    ImageId = imageData.ImageId
-                };
-
-                var careerEntity = new CareerEntity
-                {
-                    Name = careerDto.Name,
-                    Description = careerDto.Description,
-                    CategoryId = careerDto.CategoryId,
-                    ImageId = careerDto.ImageId,
+                    ImageId = imageData.ImageId,
                     IsDeleted = false
                 };
 
@@ -161,7 +157,6 @@ namespace Final_project.Services
         {
             try
             {
-                // Check if the provided careerId is valid
                 var existingCareer = await _dbContext.Careers.FindAsync(editCareerModel.Id);
                 if (existingCareer == null)
                 {
@@ -180,8 +175,6 @@ namespace Final_project.Services
 
                     if (!imageData.Success)
                     {
-                        // Handle the error condition
-                        // For example, return an error response indicating failure
                         return new CareerServiceResponseModel
                         {
                             Success = false,
@@ -193,7 +186,6 @@ namespace Final_project.Services
                     existingCareer.ImageId = imageData.ImageId;
                 }
 
-                // Update other properties if provided
                 if (!string.IsNullOrWhiteSpace(editCareerModel.Name))
                 {
                     if (_dbRecordsCheckService.RecordExistsInDatabase(editCareerModel.Name, "Careers", "Name"))
@@ -251,9 +243,6 @@ namespace Final_project.Services
 
                 await _dbContext.SaveChangesAsync();
 
-
-                // Process other fields in careerAddModel
-
                 return new CareerServiceResponseModel
                 {
                     Success = true,
@@ -276,7 +265,6 @@ namespace Final_project.Services
         {
             try
             {
-                // Check if the provided careerId is valid
                 var existingCareer = await _dbContext.Careers.FindAsync(careerId);
 
                 if (existingCareer == null)
@@ -335,10 +323,8 @@ namespace Final_project.Services
 
                 decimal averageReview = reviewsWithBulletPoints.Any() ? reviewsWithBulletPoints.Average(r => r.Rating) : 0.0m;
 
-                // Get the count of reviews
                 int reviewCount = reviewsWithBulletPoints.Length;
 
-                // Example: Save to database
                 var careerDetailsModel = new CareerDetailsModel
                 {
                     Id = existingCareer.Id,
@@ -353,8 +339,6 @@ namespace Final_project.Services
                     SalaryStatistics = salaryReports,
                     AverageReviewAndReviewCount = new AverageReviewRatingAndReviewCount { AverageReviewRating = averageReview, ReviewCount = reviewCount }
                 };
-
-                // Process other fields in careerAddModel
 
                 return new GetDetailsCareerServiceResponseModel
                 {
@@ -380,7 +364,6 @@ namespace Final_project.Services
         {
             try
             {
-                // Check if the provided careerId is valid
                 var requestedCareer = await _dbContext.Careers.FindAsync(careerId);
 
                 if (requestedCareer == null || requestedCareer.IsDeleted)
@@ -397,8 +380,6 @@ namespace Final_project.Services
 
                 if (!imageDeletion.Success)
                 {
-                    // Handle the error condition
-                    // For example, return an error response indicating failure
                     return new CareerServiceResponseModel
                     {
                         Success = false,
@@ -428,28 +409,89 @@ namespace Final_project.Services
             }
         }
 
-        public async Task<GetListCareerServiceResponseModel> GetListOfCareers(
-        [Required] GetCareersListQueryModel queryParameters
-        )
+        public async Task<GetListCareerServiceResponseModel> GetListOfCareers(GetCareersListQueryModel queryParameters)
         {
-            IQueryable<CareerEntity> careerListToBeReturned = _dbContext.Careers.AsQueryable();
-
             try
             {
+                int[] allowedRowsPerPage = { 5, 10, 15, 25, 50 };
+
+                if (!allowedRowsPerPage.Contains(queryParameters.RowsPerPage))
+                {
+                    return new GetListCareerServiceResponseModel
+                    {
+                        Success = false,
+                        Careers = null,
+                        ServerMessage = $"You can only pick 5, 10, 15, 25, 50 items per page."
+                    };
+                }
+
+                if (string.IsNullOrEmpty(queryParameters.Sorting))
+                {
+                    return new GetListCareerServiceResponseModel
+                    {
+                        Success = false,
+                        Careers = null,
+                        ServerMessage = "Sorting parameter can't be empty."
+                    };
+                }
+
+                if (!Enum.TryParse<CareerListSortingOption>(queryParameters.Sorting, true, out var sortingOption) ||
+                    !Enum.IsDefined(typeof(CareerListSortingOption), sortingOption))
+                {
+                    return new GetListCareerServiceResponseModel
+                    {
+                        Success = false,
+                        Careers = null,
+                        ServerMessage = "Invalid sorting option."
+                    };
+                }
+
+                var careerListToBeReturned = _dbContext.Careers
+                    .Select(c => new CareerDto
+                    {
+                        Career = c,
+                        AverageRating = _dbContext.Reviews
+                        .Where(review => review.IsApproved && review.CareerId == c.Id)
+                        .Select(review => review.Rating)
+                        .DefaultIfEmpty(0)
+                        .Average(),
+                        AverageSalary = _dbContext.SalaryReports
+                        .Where(salary => salary.IsApproved && salary.CareerId == c.Id)
+                        .Select(salary => salary.Salary)
+                        .DefaultIfEmpty(0)
+                        .Average(),
+                        TotalReviews = _dbContext.Reviews
+                        .Where(review => review.IsApproved && review.CareerId == c.Id)
+                        .Count(),
+                        MaxSalary = _dbContext.SalaryReports
+                        .Where(salary => salary.IsApproved && salary.CareerId == c.Id)
+                        .Select(salary => salary.Salary)
+                        .DefaultIfEmpty(0)
+                        .Max(),
+                        MinSalary = _dbContext.SalaryReports
+                        .Where(salary => salary.IsApproved && salary.CareerId == c.Id)
+                        .Select(salary => salary.Salary)
+                        .DefaultIfEmpty(0)
+                        .Min(),
+                        CategoryName = _dbContext.Categories
+                        .Where(category => category.Id == c.CategoryId)
+                        .Select(category => category.Name)
+                        .FirstOrDefault(),
+                        AverageEducationTime = _dbContext.EducationOptions
+                        .Where(edOpt => edOpt.CareerId == c.Id)
+                        .Select(edOpt => edOpt.TimeLength)
+                        .DefaultIfEmpty(0)
+                        .Average(),
+                        CareerImage = _dbContext.Images
+                        .Where(image => image.Id == c.Id)
+                        .Select(image => image.Base64ImageData)
+                        .FirstOrDefault()
+                    });
+
                 if (queryParameters.FilterParameters != null || queryParameters.CategoryIDs != null
                     || queryParameters.AverageRatingRange != null || queryParameters.SalaryFilterQuery != null
                     || queryParameters.EducationTimeRange != null)
                 {
-                    if (string.IsNullOrEmpty(queryParameters.Sorting))
-                    {
-                        return new GetListCareerServiceResponseModel
-                        {
-                            Success = false,
-                            Careers = null,
-                            ServerMessage = $"Sorting parameter can't be empty."
-                        };
-                    }
-
                     if (queryParameters.Page <= 0)
                     {
                         return new GetListCareerServiceResponseModel
@@ -467,19 +509,6 @@ namespace Final_project.Services
                             Success = false,
                             Careers = null,
                             ServerMessage = $"RowsPerPage parameter can't be empty."
-                        };
-                    }
-
-                    int[] allowedRowsPerPage = { 5, 10, 15, 25, 50 };
-
-
-                    if (!allowedRowsPerPage.Contains(queryParameters.RowsPerPage))
-                    {
-                        return new GetListCareerServiceResponseModel
-                        {
-                            Success = false,
-                            Careers = null,
-                            ServerMessage = $"You can only pick 5, 10, 15, 25, 50 items per page."
                         };
                     }
 
@@ -501,16 +530,15 @@ namespace Final_project.Services
 
                             if (characteristic.Type == "int")
                             {
-                                // Update IQueryable with filter based on integer type
                                 careerListToBeReturned = careerListToBeReturned.Where(c => _dbContext.CharacteristicReviews
                                                   .Where(ccr => ccr.CareerCharacteristicId == parameter.CareerCharacteristicId && ccr.IsApproved)
                                                   .GroupBy(ccr => ccr.CareerId)
-                                                  .Select(group => group.Any() ? group.Average(ccr => ccr.Rating) : (decimal?)0m) // Handle cases where there are no ratings
+                                                  .Select(group => group.Any() ? group.Average(ccr => ccr.Rating) : (decimal?)0m) 
                                                   .FirstOrDefault() >= parameter.ValueFrom &&
                                                 _dbContext.CharacteristicReviews
                                                   .Where(ccr => ccr.CareerCharacteristicId == parameter.CareerCharacteristicId && ccr.IsApproved)
                                                   .GroupBy(ccr => ccr.CareerId)
-                                                  .Select(group => group.Any() ? group.Average(ccr => ccr.Rating) : (decimal?)0m) // Handle cases where there are no ratings
+                                                  .Select(group => group.Any() ? group.Average(ccr => ccr.Rating) : (decimal?)0m) 
                                                   .FirstOrDefault() <= parameter.ValueTo);
 
                                 if (!careerListToBeReturned.Any())
@@ -519,6 +547,7 @@ namespace Final_project.Services
                                     {
                                         Success = true,
                                         Careers = null,
+                                        TotalPages = 0,
                                         ServerMessage = $"There are no careers matching filtering criteria."
                                     };
                                 }
@@ -546,18 +575,13 @@ namespace Final_project.Services
                                                 : "Not reviewed"
                                         });
 
-                                    // Apply filtering based on string values
                                     var filteredCareerIds = mostCommonRatingStringsQuery
                                         .Where(result => parameter.StringValues.Any(str => str == result.MostCommonRatingString))
                                         .Select(result => result.CareerId)
                                         .ToList();
 
-                                    // Filter the career list using the filteredCareerIds
-                                    careerListToBeReturned = careerListToBeReturned.Where(c => filteredCareerIds.Contains(c.Id));
+                                    careerListToBeReturned = careerListToBeReturned.Where(c => filteredCareerIds.Contains(c.Career.Id));
                                 }
-
-                                // Continue with other filterings and operations using careerListToBeReturned
-
 
                                 if (!careerListToBeReturned.Any())
                                 {
@@ -565,6 +589,7 @@ namespace Final_project.Services
                                     {
                                         Success = true,
                                         Careers = null,
+                                        TotalPages = 0,
                                         ServerMessage = $"There are no careers matching filtering criteria."
                                     };
                                 }
@@ -575,7 +600,7 @@ namespace Final_project.Services
                     if (queryParameters.CategoryIDs != null && queryParameters.CategoryIDs.Length > 0)
                     {
                         careerListToBeReturned = careerListToBeReturned
-                            .Where(career => queryParameters.CategoryIDs.Contains(career.CategoryId.ToString()));
+                            .Where(career => queryParameters.CategoryIDs.Contains(career.Career.CategoryId.ToString()));
 
                         if (!careerListToBeReturned.Any())
                         {
@@ -583,6 +608,7 @@ namespace Final_project.Services
                             {
                                 Success = false,
                                 Careers = null,
+                                TotalPages = 0,
                                 ServerMessage = $"There are no careers matching filtering criteria."
                             };
                         }
@@ -590,25 +616,9 @@ namespace Final_project.Services
 
                     if (queryParameters.AverageRatingRange != null)
                     {
-
-                        // Apply filtering based on average rating range directly to careerListToBeReturned
                         careerListToBeReturned = careerListToBeReturned
-                            .GroupJoin(_dbContext.Reviews.Where(review => review.IsApproved),
-                                career => career.Id,
-                                review => review.CareerId,
-                                (career, reviews) => new
-                                {
-                                    Career = career,
-                                    Reviews = reviews
-                                })
-                            .Select(joinedCareer => new
-                            {
-                                Career = joinedCareer.Career,
-                                AverageRating = joinedCareer.Reviews.Any() ? joinedCareer.Reviews.Average(review => review.Rating) : 0m
-                            })
                             .Where(result => result.AverageRating >= queryParameters.AverageRatingRange.RatingFrom &&
-                                             result.AverageRating <= queryParameters.AverageRatingRange.RatingTo)
-                            .Select(result => result.Career);
+                                             result.AverageRating <= queryParameters.AverageRatingRange.RatingTo);
 
                         if (!careerListToBeReturned.Any())
                         {
@@ -624,27 +634,9 @@ namespace Final_project.Services
                     if (queryParameters.SalaryFilterQuery != null)
                     {
                         careerListToBeReturned = careerListToBeReturned
-                            .GroupJoin(_dbContext.SalaryReports.Where(salary => salary.IsApproved),
-                                career => career.Id,
-                                salaryReport => salaryReport.CareerId,
-                                (career, salaryReports) => new
-                                {
-                                    Career = career,
-                                    SalaryReports = salaryReports
-                                })
-                            .Select(joinedCareer => new
-                            {
-                                Career = joinedCareer.Career,
-                                AverageSalary = joinedCareer.SalaryReports
-                                .Where(sr => sr.ExperienceYears == queryParameters.SalaryFilterQuery.ExperienceYears)
-                                .Select(sr => sr.Salary)
-                                .DefaultIfEmpty(0)
-                                .Average()
-                            })
                             .Where(result =>
                                 result.AverageSalary >= queryParameters.SalaryFilterQuery.AverageSalaryMin &&
-                                result.AverageSalary <= queryParameters.SalaryFilterQuery.AverageSalaryMax)
-                            .Select(result => result.Career);
+                                result.AverageSalary <= queryParameters.SalaryFilterQuery.AverageSalaryMax);
 
                         if (!careerListToBeReturned.Any())
                         {
@@ -659,28 +651,10 @@ namespace Final_project.Services
 
                     if (queryParameters.EducationTimeRange != null)
                     {
-                        // Filter careers based on education options
                         careerListToBeReturned = careerListToBeReturned
-                            .GroupJoin(_dbContext.EducationOptions,
-                                career => career.Id,
-                                educationOption => educationOption.CareerId,
-                                (career, educationOptions) => new
-                                {
-                                    Career = career,
-                                    EducationOptions = educationOptions
-                                })
-                            .Select(joinedCareer =>
-                                new
-                                {
-                                    Career = joinedCareer.Career,
-                                    AverageEducationTime = joinedCareer.EducationOptions.Any()
-                                        ? joinedCareer.EducationOptions.Average(eo => eo.TimeLength)
-                                        : 0
-                                })
                             .Where(result =>
                                 result.AverageEducationTime >= queryParameters.EducationTimeRange.EducationTimeMin &&
-                                result.AverageEducationTime <= queryParameters.EducationTimeRange.EducationTimeMax)
-                            .Select(result => result.Career);
+                                result.AverageEducationTime <= queryParameters.EducationTimeRange.EducationTimeMax);
 
                         if (!careerListToBeReturned.Any())
                         {
@@ -693,7 +667,8 @@ namespace Final_project.Services
                         }
                     }
 
-                    var sortingResult = await SortList(careerListToBeReturned, queryParameters.Sorting);
+                    var sortingResult = await SortList(careerListToBeReturned, sortingOption);
+
                     if (sortingResult.Success != true)
                     {
                         return new GetListCareerServiceResponseModel
@@ -734,10 +709,9 @@ namespace Final_project.Services
                         TotalPages = paginationResult.TotalPages
                     };
                 }
-
                 else
                 {
-                    var sortingResult = await SortList(careerListToBeReturned, queryParameters.Sorting);
+                    var sortingResult = await SortList(careerListToBeReturned, sortingOption);
                     if (sortingResult.Success != true)
                     {
                         return new GetListCareerServiceResponseModel
@@ -760,7 +734,7 @@ namespace Final_project.Services
                     }
 
                     var mappedResult = await MapCareersIntoCareerListModel(paginationResult.Careers);
-                    if (paginationResult.Success != true)
+                    if (mappedResult.Success != true)
                     {
                         return new GetListCareerServiceResponseModel
                         {
@@ -791,52 +765,35 @@ namespace Final_project.Services
             }
         }
 
-        private async Task<ListModel> SortList(IQueryable<CareerEntity> careerListToBeSorted, string sorting)
+        private async Task<ListModel> SortList(IQueryable<CareerDto> careerListToBeSorted, CareerListSortingOption sorting)
         {
             try
             {
                 switch (sorting)
                 {
-                    case "By recommended":
-                        // Implement random sorting logic for "By recommended"
-                        Random random = new Random();
-                        careerListToBeSorted = careerListToBeSorted.OrderBy(c => random.Next());
+                    case CareerListSortingOption.ByRecommended:
+                        careerListToBeSorted = careerListToBeSorted.OrderBy(c => _hashHelper.ComputeHash(c.Career.Name));
                         break;
 
-                    case "By rating asc":
-                        careerListToBeSorted = careerListToBeSorted.OrderBy(c => _dbContext.Reviews
-                            .Where(review => review.IsApproved && review.CareerId == c.Id)
-                            .Select(review => review.Rating)
-                            .DefaultIfEmpty(0)
-                            .Average());
+                    case CareerListSortingOption.ByRatingAsc:
+                        careerListToBeSorted = careerListToBeSorted.OrderBy(c => c.AverageRating);
                         break;
 
-                    case "By rating desc":
-                        careerListToBeSorted = careerListToBeSorted.OrderByDescending(c => _dbContext.Reviews
-                            .Where(review => review.IsApproved && review.CareerId == c.Id)
-                            .Select(review => review.Rating)
-                            .DefaultIfEmpty(0)
-                            .Average());
+                    case CareerListSortingOption.ByRatingDesc:
+                        careerListToBeSorted = careerListToBeSorted.OrderByDescending(c => c.AverageRating);
+
                         break;
 
-                    case "By average wages asc":
-                        careerListToBeSorted = careerListToBeSorted.OrderBy(c => _dbContext.SalaryReports
-                            .Where(salary => salary.CareerId == c.Id && salary.IsApproved)
-                            .Select(salary => salary.Salary)
-                            .DefaultIfEmpty(0)
-                            .Average());
+                    case CareerListSortingOption.ByAverageWagesAsc:
+                        careerListToBeSorted = careerListToBeSorted.OrderBy(c => c.AverageSalary);
+
                         break;
 
-                    case "By average wages desc":
-                        careerListToBeSorted = careerListToBeSorted.OrderByDescending(c => _dbContext.SalaryReports
-                            .Where(salary => salary.CareerId == c.Id && salary.IsApproved)
-                            .Select(salary => salary.Salary)
-                            .DefaultIfEmpty(0)
-                            .Average());
+                    case CareerListSortingOption.ByAverageWagesDesc:
+                        careerListToBeSorted = careerListToBeSorted.OrderByDescending(c => c.AverageSalary);
                         break;
 
                     default:
-                        // If an invalid sorting parameter is applied, return an error response
                         return new ListModel
                         {
                             Success = false,
@@ -845,7 +802,6 @@ namespace Final_project.Services
                         };
                 }
 
-                // Return sorted careers
                 return new ListModel
                 {
                     Success = true,
@@ -864,7 +820,7 @@ namespace Final_project.Services
             }
         }
 
-        private async Task<ListModel> PaginateList(IQueryable<CareerEntity> careerListToBePaged, int page, int rowsPerPage)
+        private async Task<ListModel> PaginateList(IQueryable<CareerDto> careerListToBePaged, int page, int rowsPerPage)
         {
             try
             {
@@ -895,7 +851,7 @@ namespace Final_project.Services
             }
         }
 
-        private async Task<ListModel> MapCareersIntoCareerListModel(IQueryable<CareerEntity> careerListToBeMapped)
+        private async Task<ListModel> MapCareersIntoCareerListModel(IQueryable<CareerDto> careerListToBeMapped)
         {
             try
             {
@@ -905,39 +861,21 @@ namespace Final_project.Services
                 {
                     var careerListModel = new CareerListModel
                     {
-                        Id = career.Id,
-                        Name = career.Name,
-                        CategoryName = await _dbContext.Categories
-                            .Where(cat => cat.Id == career.CategoryId)
-                            .Select(cat => cat.Name)
-                            .FirstOrDefaultAsync()
+                        Id = career.Career.Id,
+                        Name = career.Career.Name,
+                        CategoryName = career.CategoryName,
+                        SalaryRange = new SalaryRange {
+                            SalaryMax = career.MaxSalary,
+                            SalaryMin = career.MinSalary
+                        },
+                        AverageReviewAndReviewCount = new AverageReviewRatingAndReviewCount
+                        {
+                            AverageReviewRating = career.AverageRating,
+                            ReviewCount = career.TotalReviews
+                        }
                     };
 
-                    var salaryRangeResponse = await GetSalaryRangeForCareer(career.Id);
-
-                    if (!salaryRangeResponse.Success)
-                    {
-                        return new ListModel
-                        {
-                            Success = false,
-                            MappedCareers = null,
-                            ServerMessage = $"Salary range mapping failed: {salaryRangeResponse.ServerMessage}."
-                        };
-                    }
-
-                    var averageReviewResponse = await GetAverageReviewAndReviewCount(career.Id);
-
-                    if (!averageReviewResponse.Success)
-                    {
-                        return new ListModel
-                        {
-                            Success = false,
-                            MappedCareers = null,
-                            ServerMessage = $"Image mapping failed: {averageReviewResponse.ServerMessage}."
-                        };
-                    }
-
-                    var imageResponse = await _imageService.GetImage(career.ImageId);
+                    var imageResponse = await _imageService.GetImage(career.Career.ImageId);
 
                     if (!imageResponse.Success)
                     {
@@ -1002,8 +940,6 @@ namespace Final_project.Services
                 };
             }
         }
-
-        // Helper method to get average review rating and review count
         private async Task<AverageReviewRatingResponse> GetAverageReviewAndReviewCount(int careerId)
         {
             try
@@ -1017,7 +953,7 @@ namespace Final_project.Services
 
                 return new AverageReviewRatingResponse
                 {
-                    Success = false,
+                    Success = true,
                     AverageReviewRatingAndReviewCount = new AverageReviewRatingAndReviewCount
                     {
                         AverageReviewRating = averageRating,

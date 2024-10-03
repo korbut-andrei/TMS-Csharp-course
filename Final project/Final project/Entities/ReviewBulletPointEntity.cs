@@ -15,8 +15,7 @@ namespace Final_project.Entities
 
         public string Type { get; set; }
 
-        [ForeignKey("ReviewId")]
-        public int ReviewId { get; set; }
+        public int ReviewEntityId { get; set; }
         public virtual ReviewEntity ReviewEntity { get; set; }
     }
 }

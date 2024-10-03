@@ -9,6 +9,5 @@
         public string? StringValue { get; set; }
         
         public decimal? DecimalValue { get; set; }
-
     }
 }

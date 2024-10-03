@@ -4,6 +4,7 @@ using Final_project.Models.POST;
 using Final_project.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace Final_project.Controllers
 {
@@ -22,7 +23,24 @@ namespace Final_project.Controllers
         [Route("AddCategory")]
         public async Task<IActionResult> AddCategory([FromForm] AddCategoryModel addCategoryModel)
         {
-            return await _categoryService.AddCategory(addCategoryModel);
+            var result = await _categoryService.AddCategory(addCategoryModel);
+
+            if (result.Success)
+            {
+                return new OkObjectResult(new
+                {
+                    success = true,
+                    message = result.ServerMessage,
+                    Category = result.Category
+                });
+            }
+            else
+            {
+                return new ObjectResult(new { error = result.ServerMessage })
+                {
+                    StatusCode = (int)HttpStatusCode.InternalServerError
+                };
+            }
         }
     }
 }

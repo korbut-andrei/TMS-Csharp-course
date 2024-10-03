@@ -1,4 +1,5 @@
-﻿using Final_project.Models.GET_models;
+﻿using Final_project.Enums;
+using Final_project.Models.GET_models;
 using Final_project.Models.QueryModels;
 using System.ComponentModel.DataAnnotations;
 

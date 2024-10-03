@@ -9,5 +9,9 @@ namespace Final_project.Models.Auth
 
         [Required(ErrorMessage = "Password is required")]
         public string? Password { get; set; }
+
+        [Required(ErrorMessage = "UserAgent is required")]
+        public string UserAgent { get; set; }
+
     }
 }

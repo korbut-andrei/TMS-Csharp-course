@@ -18,7 +18,7 @@ namespace Final_project.Controllers
             _imageService = imageService;
         }
 
-        [Authorize(Roles = UserRoles.Admin)]
+        //[Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [Route("GetImage")]
         public async Task<IActionResult> GetImage([FromQuery] int imageId)

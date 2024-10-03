@@ -13,6 +13,7 @@ using System.Security.Claims;
 using System.Text;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using Final_project.Models.Auth;
+using Final_project.Services;
 
 namespace Final_project.Controllers
 {
@@ -20,78 +21,141 @@ namespace Final_project.Controllers
     [ApiController]
     public class AuthenticateController : ControllerBase
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly IConfiguration _configuration;
+        private readonly AuthService _authService;
 
-        public AuthenticateController(
-            UserManager<IdentityUser> userManager,
-            RoleManager<IdentityRole> roleManager,
-            IConfiguration configuration)
+        public AuthenticateController(AuthService authService)
         {
-            _userManager = userManager;
-            _roleManager = roleManager;
-            _configuration = configuration;
+            _authService = authService;
         }
 
         [HttpPost]
-        [Route("login")]
+        [Route("Register")]
+        public async Task<IActionResult> Register([FromForm] RegisterModel model)
+        {
+            var result = await _authService.RegisterUserAsync(model);
+
+            if (!result.Success)
+            {
+
+                return StatusCode(StatusCodes.Status400BadRequest,
+                    new Response { Status = "Error", Message = $"{result.ServerMessage}" });
+            }
+
+            return Ok(new Response { Status = "Success", Message = $"{result.ServerMessage}" });
+        }
+
+        [HttpPost]
+        [Route("Login")]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
-            var user = await _userManager.FindByNameAsync(model.Username);
-            if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
+            var response = await _authService.Authenticate(model, model.UserAgent);
+
+            SetRefreshTokenInCookie(response.RefreshToken);
+
+            if (response.Success)
             {
-                var userRoles = await _userManager.GetRolesAsync(user);
-
-                var authClaims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                };
-
-                foreach (var userRole in userRoles)
-                {
-                    authClaims.Add(new Claim(ClaimTypes.Role, userRole));
-                }
-
-                var token = GetToken(authClaims);
-
                 return Ok(new
                 {
-                    token = new JwtSecurityTokenHandler().WriteToken(token),
-                    expiration = token.ValidTo
+                    Status = "Success",
+                    JwtToken = response.JwtToken,
+                    ServerMessage = response.ServerMessage
                 });
             }
-            return Unauthorized();
+            return StatusCode(StatusCodes.Status401Unauthorized,
+                new Response { Status = "Error", Message = $"{response.ServerMessage}" });
         }
 
         [HttpPost]
-        [Route("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterModel model)
+        [Route("RefreshTokens")]
+        public async Task<IActionResult> Refresh()
         {
+            var refreshToken = Request.Cookies["refreshToken"];
 
-            IdentityUser user = new()
+            if (string.IsNullOrEmpty(refreshToken))
             {
-                Email = model.Email,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = model.Username
-            };
-            var result = await _userManager.CreateAsync(user, model.Password);
-            if (!result.Succeeded)
-            {
-                var errorsWithNumbers = result.Errors
-                    .Select((error, index) => $"{index + 1}. {error.Description}");
-
-                var errorsMessage = string.Join(" ", errorsWithNumbers);
-                
-                return StatusCode(StatusCodes.Status400BadRequest, 
-                    new Response { Status = "Error", Message = $"{errorsMessage}" });
-
+                return StatusCode(StatusCodes.Status400BadRequest,
+                    new Response { Status = "Error", Message = "Refresh token is missing." });
             }
 
-            return Ok(new Response { Status = "Success", Message = "User created successfully!" });
+            var response = await _authService.RefreshToken(refreshToken);
+
+            if (!response.Success)
+            {
+                return StatusCode(StatusCodes.Status400BadRequest, 
+                    new Response { Status = "Error", Message = $"{response.ServerMessage}" });
+            }
+
+            SetRefreshTokenInCookie(response.RefreshToken);
+
+            return Ok(new {
+                Status = "Success",
+                JwtToken = response.JwtToken,
+                ServerMessage = $"{response.ServerMessage}"
+            });
         }
 
+        [HttpPost]
+        [Route("LogOut")]
+        public async Task<IActionResult> LogOutAsync()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return StatusCode(StatusCodes.Status400BadRequest,
+                    new Response { Status = "Error", Message = "Refresh token is missing." });
+            }
+
+            var token = Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+
+            if (string.IsNullOrEmpty (token))
+            {
+                return StatusCode(StatusCodes.Status400BadRequest,
+                    new Response { Status = "Error", Message = "Jwt token is missing." });
+            }
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            var jwtToken = tokenHandler.ReadJwtToken(token);
+
+            var username = jwtToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
+
+            if (string.IsNullOrEmpty(username))
+            {
+                return StatusCode(StatusCodes.Status400BadRequest,
+                    new Response { Status = "Error", Message = "User of given JWT couldn't be found." });
+            }
+
+            var result = await _authService.LogOutAsync(username, refreshToken);
+
+            if (result.Success)
+            {
+                return Ok(new
+                {
+                    Status = "Success",
+                    ServerMessage = $"{result.ServerMessage}"
+                });
+            }
+
+            return StatusCode(StatusCodes.Status400BadRequest, 
+                new Response { Status = "Error", Message = $"{result.ServerMessage}" });
+
+        }
+
+        private void SetRefreshTokenInCookie(string refreshToken)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.Now.AddDays(7)
+            };
+
+            Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
+        }
+
+        /*
         [HttpPost]
         [Route("register-admin")]
         public async Task<IActionResult> RegisterAdmin([FromBody] RegisterModel model)
@@ -125,20 +189,6 @@ namespace Final_project.Controllers
             }
             return Ok(new Response { Status = "Success", Message = "User created successfully!" });
         }
-
-        private JwtSecurityToken GetToken(List<Claim> authClaims)
-        {
-            var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["JWT:ValidIssuer"],
-                audience: _configuration["JWT:ValidAudience"],
-                expires: DateTime.Now.AddHours(3),
-                claims: authClaims,
-                signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
-                );
-
-            return token;
-        }
+        */
     }
 }
