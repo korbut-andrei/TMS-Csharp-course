@@ -14,6 +14,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
 using Microsoft.AspNetCore.Server.HttpSys;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.Extensions.Caching.Memory; // Add this
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -116,6 +118,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<HashHelper>();
 builder.Services.AddScoped<CareerService>();
 builder.Services.AddScoped<CategoryService>();

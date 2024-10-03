@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
@@ -31,21 +32,26 @@ namespace Final_project.Services
 {
     public class CareerService : ICareerService
     {
+
+        private readonly IMemoryCache _cache;
+
         private readonly CareerContext _dbContext;
 
         private readonly ImageService _imageService;
 
         private readonly HashHelper _hashHelper;
 
-
         private readonly DbRecordsCheckService _dbRecordsCheckService;
 
-        public CareerService(CareerContext dbContext, ImageService imageService, DbRecordsCheckService dbRecordsCheckService, HashHelper hashHelper)
+        public CareerService(CareerContext dbContext, ImageService imageService, 
+            DbRecordsCheckService dbRecordsCheckService, HashHelper hashHelper,
+            IMemoryCache memoryCache)
         {
             _dbContext = dbContext;
             _imageService = imageService;
             _dbRecordsCheckService = dbRecordsCheckService;
             _hashHelper = hashHelper;
+            _cache = memoryCache;
         }
 
         public async Task<CareerServiceResponseModel> AddCareer(AddCareerModel addCareerModel)
@@ -435,6 +441,26 @@ namespace Final_project.Services
                     };
                 }
 
+                if (queryParameters.Page <= 0)
+                {
+                    return new GetListCareerServiceResponseModel
+                    {
+                        Success = false,
+                        Careers = null,
+                        ServerMessage = $"Page parameter can't be empty or 0."
+                    };
+                }
+
+                if (queryParameters.RowsPerPage <= 0)
+                {
+                    return new GetListCareerServiceResponseModel
+                    {
+                        Success = false,
+                        Careers = null,
+                        ServerMessage = $"RowsPerPage parameter can't be empty."
+                    };
+                }
+
                 if (!Enum.TryParse<CareerListSortingOption>(queryParameters.Sorting, true, out var sortingOption) ||
                     !Enum.IsDefined(typeof(CareerListSortingOption), sortingOption))
                 {
@@ -446,7 +472,48 @@ namespace Final_project.Services
                     };
                 }
 
-                var careerListToBeReturned = _dbContext.Careers
+                StringBuilder cacheKey = new StringBuilder();
+                cacheKey.Append($"careers_page_{queryParameters.Page}_pageSize_{queryParameters.RowsPerPage}_sortBy_{queryParameters.Sorting}");
+
+                if (queryParameters.CategoryIDs != null)
+                {
+                    var sortedCategoryIDs = queryParameters.CategoryIDs.OrderBy(c => c);
+                    cacheKey.Append($"_categories_{string.Join(",", sortedCategoryIDs)}");
+                }
+
+                if (queryParameters.AverageRatingRange != null)
+                {
+                    cacheKey.Append($"_average_rating_from_{queryParameters.AverageRatingRange.RatingFrom}_to_{queryParameters.AverageRatingRange.RatingTo}");
+                }
+
+                if (queryParameters.SalaryFilterQuery != null)
+                {
+                    cacheKey.Append($"_salary_experience_{queryParameters.SalaryFilterQuery.ExperienceYears}_" +
+                        $"from_{queryParameters.SalaryFilterQuery.AverageSalaryMin}_" +
+                        $"to_{queryParameters.SalaryFilterQuery.AverageSalaryMax}");
+                }
+
+                if (queryParameters.EducationTimeRange != null)
+                {
+                    cacheKey.Append($"_education_time_range_from_{queryParameters.EducationTimeRange.EducationTimeMin}_" +
+                        $"to_{queryParameters.EducationTimeRange.EducationTimeMax}");
+                }
+
+                if (queryParameters.FilterParameters != null)
+                {
+                    var sortedFilterParameters = queryParameters.FilterParameters.OrderBy(fp => fp.CareerCharacteristicId);
+
+                    foreach (var parameter in sortedFilterParameters)
+                    {
+                        cacheKey.Append($"_parameterID_{parameter.CareerCharacteristicId}_" +
+                        $"from_{parameter.ValueFrom}_" +
+                            $"to_{parameter.ValueTo}");
+                    }
+                }
+
+                if (!_cache.TryGetValue(cacheKey, out GetListCareerServiceResponseModel cachedCareersListResponseModel))
+                {
+                    var careerListToBeReturned = _dbContext.Careers
                     .Select(c => new CareerDto
                     {
                         Career = c,
@@ -488,269 +555,265 @@ namespace Final_project.Services
                         .FirstOrDefault()
                     });
 
-                if (queryParameters.FilterParameters != null || queryParameters.CategoryIDs != null
-                    || queryParameters.AverageRatingRange != null || queryParameters.SalaryFilterQuery != null
-                    || queryParameters.EducationTimeRange != null)
-                {
-                    if (queryParameters.Page <= 0)
+                    if (queryParameters.FilterParameters != null || queryParameters.CategoryIDs != null 
+                        || queryParameters.AverageRatingRange != null || queryParameters.SalaryFilterQuery != null
+                        || queryParameters.EducationTimeRange != null)
                     {
-                        return new GetListCareerServiceResponseModel
-                        {
-                            Success = false,
-                            Careers = null,
-                            ServerMessage = $"Page parameter can't be empty or 0."
-                        };
-                    }
 
-                    if (queryParameters.RowsPerPage <= 0)
-                    {
-                        return new GetListCareerServiceResponseModel
-                        {
-                            Success = false,
-                            Careers = null,
-                            ServerMessage = $"RowsPerPage parameter can't be empty."
-                        };
-                    }
 
-                    if (queryParameters.FilterParameters != null)
-                    {
-                        foreach (var parameter in queryParameters.FilterParameters)
+                        if (queryParameters.FilterParameters != null)
                         {
-                            var characteristic = await _dbContext.Characteristics.FindAsync(parameter.CareerCharacteristicId);
+                            foreach (var parameter in queryParameters.FilterParameters)
+                            {
+                                var characteristic = await _dbContext.Characteristics.FindAsync(parameter.CareerCharacteristicId);
 
-                            if (characteristic == null)
+                                if (characteristic == null)
+                                {
+                                    return new GetListCareerServiceResponseModel
+                                    {
+                                        Success = false,
+                                        Careers = null,
+                                        ServerMessage = $"Filtering career characteristic with Id {parameter.CareerCharacteristicId} not found."
+                                    };
+                                }
+
+                                if (characteristic.Type == "int")
+                                {
+                                    careerListToBeReturned = careerListToBeReturned.Where(c => _dbContext.CharacteristicReviews
+                                                      .Where(ccr => ccr.CareerCharacteristicId == parameter.CareerCharacteristicId && ccr.IsApproved)
+                                                      .GroupBy(ccr => ccr.CareerId)
+                                                      .Select(group => group.Any() ? group.Average(ccr => ccr.Rating) : (decimal?)0m)
+                                                      .FirstOrDefault() >= parameter.ValueFrom &&
+                                                    _dbContext.CharacteristicReviews
+                                                      .Where(ccr => ccr.CareerCharacteristicId == parameter.CareerCharacteristicId && ccr.IsApproved)
+                                                      .GroupBy(ccr => ccr.CareerId)
+                                                      .Select(group => group.Any() ? group.Average(ccr => ccr.Rating) : (decimal?)0m)
+                                                      .FirstOrDefault() <= parameter.ValueTo);
+
+                                    if (!careerListToBeReturned.Any())
+                                    {
+                                        return new GetListCareerServiceResponseModel
+                                        {
+                                            Success = true,
+                                            Careers = null,
+                                            TotalPages = 0,
+                                            ServerMessage = $"There are no careers matching filtering criteria."
+                                        };
+                                    }
+                                }
+
+                                if (characteristic.Type == "string")
+                                {
+                                    if (characteristic.Type == "string")
+                                    {
+                                        var mostCommonRatingStringsQuery = _dbContext.CharacteristicReviews
+                                            .Where(ccr => ccr.CareerCharacteristicId == parameter.CareerCharacteristicId && ccr.IsApproved)
+                                            .GroupBy(ccr => new { ccr.CareerId, ccr.RatingString })
+                                            .Select(g => new
+                                            {
+                                                CareerId = g.Key.CareerId,
+                                                RatingString = g.Key.RatingString,
+                                                Count = g.Count()
+                                            })
+                                            .GroupBy(result => result.CareerId)
+                                            .Select(group => new
+                                            {
+                                                CareerId = group.Key,
+                                                MostCommonRatingString = group.OrderByDescending(x => x.Count).FirstOrDefault() != null
+                                                    ? group.OrderByDescending(x => x.Count).First().RatingString
+                                                    : "Not reviewed"
+                                            });
+
+                                        var filteredCareerIds = mostCommonRatingStringsQuery
+                                            .Where(result => parameter.StringValues.Any(str => str == result.MostCommonRatingString))
+                                            .Select(result => result.CareerId);
+
+                                        careerListToBeReturned = careerListToBeReturned.Where(c => filteredCareerIds.Contains(c.Career.Id));
+                                    }
+
+                                    if (!careerListToBeReturned.Any())
+                                    {
+                                        return new GetListCareerServiceResponseModel
+                                        {
+                                            Success = true,
+                                            Careers = null,
+                                            TotalPages = 0,
+                                            ServerMessage = $"There are no careers matching filtering criteria."
+                                        };
+                                    }
+                                }
+                            }
+                        }
+
+                        if (queryParameters.CategoryIDs != null && queryParameters.CategoryIDs.Length > 0)
+                        {
+                            careerListToBeReturned = careerListToBeReturned
+                                .Where(career => queryParameters.CategoryIDs.Contains(career.Career.CategoryId));
+
+                            if (!careerListToBeReturned.Any())
                             {
                                 return new GetListCareerServiceResponseModel
                                 {
                                     Success = false,
                                     Careers = null,
-                                    ServerMessage = $"Filtering career characteristic with Id {parameter.CareerCharacteristicId} not found."
+                                    TotalPages = 0,
+                                    ServerMessage = $"There are no careers matching filtering criteria."
                                 };
                             }
+                        }
 
-                            if (characteristic.Type == "int")
+                        if (queryParameters.AverageRatingRange != null)
+                        {
+                            careerListToBeReturned = careerListToBeReturned
+                                .Where(result => result.AverageRating >= queryParameters.AverageRatingRange.RatingFrom &&
+                                                 result.AverageRating <= queryParameters.AverageRatingRange.RatingTo);
+
+                            if (!careerListToBeReturned.Any())
                             {
-                                careerListToBeReturned = careerListToBeReturned.Where(c => _dbContext.CharacteristicReviews
-                                                  .Where(ccr => ccr.CareerCharacteristicId == parameter.CareerCharacteristicId && ccr.IsApproved)
-                                                  .GroupBy(ccr => ccr.CareerId)
-                                                  .Select(group => group.Any() ? group.Average(ccr => ccr.Rating) : (decimal?)0m) 
-                                                  .FirstOrDefault() >= parameter.ValueFrom &&
-                                                _dbContext.CharacteristicReviews
-                                                  .Where(ccr => ccr.CareerCharacteristicId == parameter.CareerCharacteristicId && ccr.IsApproved)
-                                                  .GroupBy(ccr => ccr.CareerId)
-                                                  .Select(group => group.Any() ? group.Average(ccr => ccr.Rating) : (decimal?)0m) 
-                                                  .FirstOrDefault() <= parameter.ValueTo);
-
-                                if (!careerListToBeReturned.Any())
+                                return new GetListCareerServiceResponseModel
                                 {
-                                    return new GetListCareerServiceResponseModel
-                                    {
-                                        Success = true,
-                                        Careers = null,
-                                        TotalPages = 0,
-                                        ServerMessage = $"There are no careers matching filtering criteria."
-                                    };
-                                }
-                            }
-
-                            if (characteristic.Type == "string")
-                            {
-                                if (characteristic.Type == "string")
-                                {
-                                    var mostCommonRatingStringsQuery = _dbContext.CharacteristicReviews
-                                        .Where(ccr => ccr.CareerCharacteristicId == parameter.CareerCharacteristicId && ccr.IsApproved)
-                                        .GroupBy(ccr => new { ccr.CareerId, ccr.RatingString })
-                                        .Select(g => new
-                                        {
-                                            CareerId = g.Key.CareerId,
-                                            RatingString = g.Key.RatingString,
-                                            Count = g.Count()
-                                        })
-                                        .GroupBy(result => result.CareerId)
-                                        .Select(group => new
-                                        {
-                                            CareerId = group.Key,
-                                            MostCommonRatingString = group.OrderByDescending(x => x.Count).FirstOrDefault() != null
-                                                ? group.OrderByDescending(x => x.Count).First().RatingString
-                                                : "Not reviewed"
-                                        });
-
-                                    var filteredCareerIds = mostCommonRatingStringsQuery
-                                        .Where(result => parameter.StringValues.Any(str => str == result.MostCommonRatingString))
-                                        .Select(result => result.CareerId)
-                                        .ToList();
-
-                                    careerListToBeReturned = careerListToBeReturned.Where(c => filteredCareerIds.Contains(c.Career.Id));
-                                }
-
-                                if (!careerListToBeReturned.Any())
-                                {
-                                    return new GetListCareerServiceResponseModel
-                                    {
-                                        Success = true,
-                                        Careers = null,
-                                        TotalPages = 0,
-                                        ServerMessage = $"There are no careers matching filtering criteria."
-                                    };
-                                }
+                                    Success = false,
+                                    Careers = null,
+                                    ServerMessage = $"There are no careers matching filtering criteria."
+                                };
                             }
                         }
-                    }
 
-                    if (queryParameters.CategoryIDs != null && queryParameters.CategoryIDs.Length > 0)
-                    {
-                        careerListToBeReturned = careerListToBeReturned
-                            .Where(career => queryParameters.CategoryIDs.Contains(career.Career.CategoryId.ToString()));
+                        if (queryParameters.SalaryFilterQuery != null)
+                        {
+                            careerListToBeReturned = careerListToBeReturned
+                                .Where(result =>
+                                    result.AverageSalary >= queryParameters.SalaryFilterQuery.AverageSalaryMin &&
+                                    result.AverageSalary <= queryParameters.SalaryFilterQuery.AverageSalaryMax);
 
-                        if (!careerListToBeReturned.Any())
+                            if (!careerListToBeReturned.Any())
+                            {
+                                return new GetListCareerServiceResponseModel
+                                {
+                                    Success = false,
+                                    Careers = null,
+                                    ServerMessage = $"There are no careers matching filtering criteria."
+                                };
+                            }
+                        }
+
+                        if (queryParameters.EducationTimeRange != null)
+                        {
+                            careerListToBeReturned = careerListToBeReturned
+                                .Where(result =>
+                                    result.AverageEducationTime >= queryParameters.EducationTimeRange.EducationTimeMin &&
+                                    result.AverageEducationTime <= queryParameters.EducationTimeRange.EducationTimeMax);
+
+                            if (!careerListToBeReturned.Any())
+                            {
+                                return new GetListCareerServiceResponseModel
+                                {
+                                    Success = false,
+                                    Careers = null,
+                                    ServerMessage = $"There are no careers matching filtering criteria."
+                                };
+                            }
+                        }
+
+                        var sortingResult = await SortList(careerListToBeReturned, sortingOption);
+
+                        if (sortingResult.Success != true)
                         {
                             return new GetListCareerServiceResponseModel
                             {
                                 Success = false,
                                 Careers = null,
-                                TotalPages = 0,
-                                ServerMessage = $"There are no careers matching filtering criteria."
+                                ServerMessage = $"{sortingResult.ServerMessage}"
                             };
                         }
-                    }
 
-                    if (queryParameters.AverageRatingRange != null)
-                    {
-                        careerListToBeReturned = careerListToBeReturned
-                            .Where(result => result.AverageRating >= queryParameters.AverageRatingRange.RatingFrom &&
-                                             result.AverageRating <= queryParameters.AverageRatingRange.RatingTo);
-
-                        if (!careerListToBeReturned.Any())
+                        var paginationResult = await PaginateList(careerListToBeReturned, queryParameters.Page, queryParameters.RowsPerPage);
+                        if (paginationResult.Success != true)
                         {
                             return new GetListCareerServiceResponseModel
                             {
                                 Success = false,
                                 Careers = null,
-                                ServerMessage = $"There are no careers matching filtering criteria."
+                                ServerMessage = $"{paginationResult.ServerMessage}"
                             };
                         }
-                    }
 
-                    if (queryParameters.SalaryFilterQuery != null)
-                    {
-                        careerListToBeReturned = careerListToBeReturned
-                            .Where(result =>
-                                result.AverageSalary >= queryParameters.SalaryFilterQuery.AverageSalaryMin &&
-                                result.AverageSalary <= queryParameters.SalaryFilterQuery.AverageSalaryMax);
-
-                        if (!careerListToBeReturned.Any())
+                        var mappedResult = await MapCareersIntoCareerListModel(paginationResult.Careers);
+                        if (paginationResult.Success != true)
                         {
                             return new GetListCareerServiceResponseModel
                             {
                                 Success = false,
                                 Careers = null,
-                                ServerMessage = $"There are no careers matching filtering criteria."
+                                ServerMessage = $"{paginationResult.ServerMessage}"
                             };
                         }
+
+                        var careerListResponseModel = new GetListCareerServiceResponseModel
+                        {
+                            Careers = mappedResult.MappedCareers,
+                            ServerMessage = $"List of careers successfully collected.",
+                            Success = true,
+                            TotalPages = paginationResult.TotalPages
+                        };
+
+                        var cacheOptions = new MemoryCacheEntryOptions
+                        {
+                            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
+                        };
+
+                        _cache.Set(cacheKey, careerListResponseModel, cacheOptions);
+
+                        return careerListResponseModel;
                     }
-
-                    if (queryParameters.EducationTimeRange != null)
+                    else
                     {
-                        careerListToBeReturned = careerListToBeReturned
-                            .Where(result =>
-                                result.AverageEducationTime >= queryParameters.EducationTimeRange.EducationTimeMin &&
-                                result.AverageEducationTime <= queryParameters.EducationTimeRange.EducationTimeMax);
-
-                        if (!careerListToBeReturned.Any())
+                        var sortingResult = await SortList(careerListToBeReturned, sortingOption);
+                        if (sortingResult.Success != true)
                         {
                             return new GetListCareerServiceResponseModel
                             {
                                 Success = false,
                                 Careers = null,
-                                ServerMessage = $"There are no careers matching filtering criteria."
+                                ServerMessage = $"{sortingResult.ServerMessage}"
                             };
                         }
-                    }
 
-                    var sortingResult = await SortList(careerListToBeReturned, sortingOption);
+                        var paginationResult = await PaginateList(sortingResult.Careers, queryParameters.Page, queryParameters.RowsPerPage);
+                        if (paginationResult.Success != true)
+                        {
+                            return new GetListCareerServiceResponseModel
+                            {
+                                Success = false,
+                                Careers = null,
+                                ServerMessage = $"{paginationResult.ServerMessage}"
+                            };
+                        }
 
-                    if (sortingResult.Success != true)
-                    {
+                        var mappedResult = await MapCareersIntoCareerListModel(paginationResult.Careers);
+                        if (mappedResult.Success != true)
+                        {
+                            return new GetListCareerServiceResponseModel
+                            {
+                                Success = false,
+                                Careers = null,
+                                ServerMessage = $"{paginationResult.ServerMessage}"
+                            };
+                        }
+
                         return new GetListCareerServiceResponseModel
                         {
-                            Success = false,
-                            Careers = null,
-                            ServerMessage = $"{sortingResult.ServerMessage}"
+                            Careers = mappedResult.MappedCareers,
+                            ServerMessage = $"List of careers successfully collected.",
+                            Success = true,
+                            TotalPages = paginationResult.TotalPages
                         };
                     }
 
-                    var paginationResult = await PaginateList(careerListToBeReturned, queryParameters.Page, queryParameters.RowsPerPage);
-                    if (paginationResult.Success != true)
-                    {
-                        return new GetListCareerServiceResponseModel
-                        {
-                            Success = false,
-                            Careers = null,
-                            ServerMessage = $"{paginationResult.ServerMessage}"
-                        };
-                    }
-
-                    var mappedResult = await MapCareersIntoCareerListModel(paginationResult.Careers);
-                    if (paginationResult.Success != true)
-                    {
-                        return new GetListCareerServiceResponseModel
-                        {
-                            Success = false,
-                            Careers = null,
-                            ServerMessage = $"{paginationResult.ServerMessage}"
-                        };
-                    }
-
-                    return new GetListCareerServiceResponseModel
-                    {
-                        Careers = mappedResult.MappedCareers,
-                        ServerMessage = $"List of careers successfully collected.",
-                        Success = true,
-                        TotalPages = paginationResult.TotalPages
-                    };
                 }
                 else
                 {
-                    var sortingResult = await SortList(careerListToBeReturned, sortingOption);
-                    if (sortingResult.Success != true)
-                    {
-                        return new GetListCareerServiceResponseModel
-                        {
-                            Success = false,
-                            Careers = null,
-                            ServerMessage = $"{sortingResult.ServerMessage}"
-                        };
-                    }
-
-                    var paginationResult = await PaginateList(sortingResult.Careers, queryParameters.Page, queryParameters.RowsPerPage);
-                    if (paginationResult.Success != true)
-                    {
-                        return new GetListCareerServiceResponseModel
-                        {
-                            Success = false,
-                            Careers = null,
-                            ServerMessage = $"{paginationResult.ServerMessage}"
-                        };
-                    }
-
-                    var mappedResult = await MapCareersIntoCareerListModel(paginationResult.Careers);
-                    if (mappedResult.Success != true)
-                    {
-                        return new GetListCareerServiceResponseModel
-                        {
-                            Success = false,
-                            Careers = null,
-                            ServerMessage = $"{paginationResult.ServerMessage}"
-                        };
-                    }
-
-                    return new GetListCareerServiceResponseModel
-                    {
-                        Careers = mappedResult.MappedCareers,
-                        ServerMessage = $"List of careers successfully collected.",
-                        Success = true,
-                        TotalPages = paginationResult.TotalPages
-                    };
+                    return cachedCareersListResponseModel;
                 }
             }
             catch (Exception ex)

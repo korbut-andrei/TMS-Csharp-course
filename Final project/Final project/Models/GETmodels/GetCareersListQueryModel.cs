@@ -14,7 +14,7 @@ namespace Final_project.Models.GETmodels
         [Required]
         public string Sorting { get; set; }
         public GetCareersListCharacteristicFilterParameters[]? FilterParameters { get; set; }
-        public string[]? CategoryIDs { get; set; }
+        public int[]? CategoryIDs { get; set; }
         public AverageRatingRange? AverageRatingRange { get; set; }
         public SalaryFilterQuery? SalaryFilterQuery { get; set; }
         public EducationTimeRange? EducationTimeRange { get; set; }

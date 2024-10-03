@@ -49,7 +49,7 @@ namespace Final_project.Services
                                                   .First(method => method.Name == "Any" && method.GetParameters().Length == 2)
                                                   .MakeGenericMethod(elementType);
                 var result = (bool)anyMethod.Invoke(null, new object[] { dbSet, lambda });
-                \   
+                
                 return result;
             }
             catch (InvalidCastException)
