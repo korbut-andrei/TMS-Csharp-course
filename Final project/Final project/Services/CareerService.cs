@@ -25,6 +25,8 @@ using System.Net;
 using System.Reflection.PortableExecutable;
 using System.Runtime.ConstrainedExecution;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Xml.Linq;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
@@ -1037,3 +1039,40 @@ namespace Final_project.Services
         }
     }
 }
+
+
+
+{
+    Person person = new Person { Name = "Alice", Age = null };
+
+    var options = new JsonSerializerOptions
+    {
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    string json = JsonSerializer.Serialize(person, options);
+    Console.WriteLine(json); // Output: {"Name":"Alice"}
+
+}
+public class Person
+{
+    [JsonPropertyName("full_name")]
+    public string Name { get; set; }
+    public int Age { get; set; }
+}
+
+public class test
+{
+    [JsonIgnore]
+    public string cope { get; set; }
+
+    public string axaxaxaxaxa { get; set; }
+
+
+}
+
+var options = new JsonSerializerOptions 
+{
+    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+    PropertyNamingPolicy = JsonNamingPolicy.
+};
