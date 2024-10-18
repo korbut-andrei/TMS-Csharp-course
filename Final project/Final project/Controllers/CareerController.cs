@@ -27,9 +27,12 @@ namespace Final_project.Controllers
     {
         private readonly CareerService _careerService;
 
-        public CareerController(CareerService careerService)
+        private readonly ILogger<CareerController> _logger;
+
+        public CareerController(CareerService careerService, ILogger<CareerController> logger)
         {
             _careerService = careerService;
+            _logger = logger;
         }
 
         //[Authorize(Roles = UserRoles.Admin)]
@@ -134,24 +137,41 @@ namespace Final_project.Controllers
         [Required] GetCareersListQueryModel queryParameters
         )
         {
-            var result = await _careerService.GetListOfCareers(queryParameters);
+            _logger.LogInformation("Request to GetListOfCareers started. IP: {IP}, Parameters: {@queryParameters}", 
+                HttpContext.Connection.RemoteIpAddress, queryParameters);
 
-            if (result.Success)
+            try
             {
-                return new OkObjectResult(new
+                var result = await _careerService.GetListOfCareers(queryParameters);
+
+                if (result.Success)
                 {
-                    message = result.ServerMessage,
-                    careers = result.Careers,
-                    totalPages = result.TotalPages
-                });
+                    _logger.LogInformation("GetListOfCareers successfully completed.");
+
+                    return new OkObjectResult(new
+                    {
+                        message = result.ServerMessage,
+                        careers = result.Careers,
+                        totalPages = result.TotalPages
+                    });
+                }
+                else
+                {
+                    _logger.LogError("GetListOfCareers failed. Error: {Error}", result.ServerMessage);
+
+                    return new ObjectResult(new { error = result.ServerMessage })
+                    {
+                        StatusCode = (int)HttpStatusCode.InternalServerError
+                    };
+                }
             }
-            else
+            catch(Exception ex)
             {
-                return new ObjectResult(new { error = result.ServerMessage })
-                {
-                    StatusCode = (int)HttpStatusCode.InternalServerError
-                };
+                _logger.LogError(ex, "Unhandled error occurred during GetListOfCareers.");
+
+                return StatusCode((int)HttpStatusCode.InternalServerError, new { error = "An unexpected error occurred." });
             }
+
         }
     }
 }

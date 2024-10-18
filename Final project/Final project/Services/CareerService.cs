@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -45,15 +46,21 @@ namespace Final_project.Services
 
         private readonly DbRecordsCheckService _dbRecordsCheckService;
 
+        private readonly ConcurrentBag<string> _careerCacheKeys;
+
+        private readonly ILogger<CareerService> _logger;
+
+
         public CareerService(CareerContext dbContext, ImageService imageService, 
             DbRecordsCheckService dbRecordsCheckService, HashHelper hashHelper,
-            IMemoryCache memoryCache)
+            IMemoryCache memoryCache, ILogger<CareerService> logger)
         {
             _dbContext = dbContext;
             _imageService = imageService;
             _dbRecordsCheckService = dbRecordsCheckService;
             _hashHelper = hashHelper;
             _cache = memoryCache;
+            _logger = logger;
         }
 
         public async Task<CareerServiceResponseModel> AddCareer(AddCareerModel addCareerModel)
@@ -140,7 +147,7 @@ namespace Final_project.Services
                 _dbContext.Careers.Add(careerEntity);
                 await _dbContext.SaveChangesAsync();
 
-                // Process other fields in careerAddModel
+                ClearCache();
 
                 return new CareerServiceResponseModel
                 {
@@ -160,6 +167,8 @@ namespace Final_project.Services
                 };
             }
         }
+
+
 
         public async Task<CareerServiceResponseModel> EditCareer(EditCareerModel editCareerModel)
         {
@@ -251,6 +260,8 @@ namespace Final_project.Services
 
                 await _dbContext.SaveChangesAsync();
 
+                ClearCache();
+
                 return new CareerServiceResponseModel
                 {
                     Success = true,
@@ -273,87 +284,106 @@ namespace Final_project.Services
         {
             try
             {
-                var existingCareer = await _dbContext.Careers.FindAsync(careerId);
 
-                if (existingCareer == null)
+                var cacheKey = $"career_id_{careerId}";
+
+                if (!_cache.TryGetValue(cacheKey, out GetDetailsCareerServiceResponseModel cachedCareerResponseModel))
                 {
-                    return new GetDetailsCareerServiceResponseModel
+                    var existingCareer = await _dbContext.Careers.FindAsync(careerId);
+
+                    if (existingCareer == null)
                     {
-                        Success = false,
-                        Career = null,
-                        ServerMessage = $"Career with id {careerId} not found."
+                        return new GetDetailsCareerServiceResponseModel
+                        {
+                            Success = false,
+                            Career = null,
+                            ServerMessage = $"Career with id {careerId} not found."
+                        };
+                    }
+                    if (existingCareer.IsDeleted)
+                    {
+                        return new GetDetailsCareerServiceResponseModel
+                        {
+                            Success = false,
+                            Career = null,
+                            ServerMessage = $"This career is no longer available."
+                        };
+                    }
+
+                    var imageData = await _imageService.GetImage(existingCareer.ImageId);
+
+                    if (!imageData.Success)
+                    {
+                        // Handle the error condition
+                        // For example, return an error response indicating failure
+                        return new GetDetailsCareerServiceResponseModel
+                        {
+                            Success = false,
+                            Career = null,
+                            ServerMessage = $"Server couldn't load the career image. Error: {imageData.ServerMessage}"
+                        };
+                    }
+
+                    var careerCategory = await _dbContext.Categories.FindAsync(existingCareer.CategoryId);
+
+                    var salaryReports = await _dbContext.SalaryReports.Where(c => c.CareerId == existingCareer.Id).ToArrayAsync();
+
+                    int minSalary = salaryReports.Any() ? salaryReports.Min(s => s.Salary) : 0;
+
+                    int maxSalary = salaryReports.Any() ? salaryReports.Max(s => s.Salary) : 0;
+
+                    var typicalTaskEntityList = await _dbContext.TypicalTasks.Where(c => c.CareerId == existingCareer.Id).ToArrayAsync();
+
+                    var typicalTaskList =
+                        typicalTaskEntityList.Select(tt => new TypicalTaskList
+                        {
+                            Id = tt.Id,
+                            Description = tt.Description
+                        }).ToArray();
+
+                    var careerCharacteristics = await _dbContext.Characteristics.ToArrayAsync();
+
+                    var reviewsWithBulletPoints = await _dbContext.Reviews.Include(r => r.ReviewBulletPoints).Where(r => r.CareerId == existingCareer.Id).ToArrayAsync();
+
+                    decimal averageReview = reviewsWithBulletPoints.Any() ? reviewsWithBulletPoints.Average(r => r.Rating) : 0.0m;
+
+                    int reviewCount = reviewsWithBulletPoints.Length;
+
+                    var careerDetailsModel = new CareerDetailsModel
+                    {
+                        Id = existingCareer.Id,
+                        ProfessionName = existingCareer.Name,
+                        Description = existingCareer.Description,
+                        CareerImage = imageData.Image,
+                        categoryName = careerCategory.Name,
+                        SalaryRange = new SalaryRange { SalaryMin = minSalary, SalaryMax = maxSalary },
+                        TypicalTasks = typicalTaskList,
+                        CareerCharacteristics = careerCharacteristics,
+                        Reviews = reviewsWithBulletPoints,
+                        SalaryStatistics = salaryReports,
+                        AverageReviewAndReviewCount = new AverageReviewRatingAndReviewCount { AverageReviewRating = averageReview, ReviewCount = reviewCount }
                     };
-                }
-                if (existingCareer.IsDeleted)
-                {
-                    return new GetDetailsCareerServiceResponseModel
+
+                    var careerResponseModel =  new GetDetailsCareerServiceResponseModel
                     {
-                        Success = false,
-                        Career = null,
-                        ServerMessage = $"This career is no longer available."
+                        Success = true,
+                        Career = careerDetailsModel,
+                        ServerMessage = $"Career {careerId} has been successfully found."
                     };
-                }
 
-                var imageData = await _imageService.GetImage(existingCareer.ImageId);
-
-                if (!imageData.Success)
-                {
-                    // Handle the error condition
-                    // For example, return an error response indicating failure
-                    return new GetDetailsCareerServiceResponseModel
+                    var cacheOptions = new MemoryCacheEntryOptions
                     {
-                        Success = false,
-                        Career = null,
-                        ServerMessage = $"Server couldn't load the career image. Error: {imageData.ServerMessage}"
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
                     };
+
+
+                    _careerCacheKeys.Add(cacheKey.ToString());
+                    _cache.Set(cacheKey, careerResponseModel, cacheOptions);
+
+                    return careerResponseModel;
                 }
 
-                var careerCategory = await _dbContext.Categories.FindAsync(existingCareer.CategoryId);
-
-                var salaryReports = await _dbContext.SalaryReports.Where(c => c.CareerId == existingCareer.Id).ToArrayAsync();
-
-                int minSalary = salaryReports.Any() ? salaryReports.Min(s => s.Salary) : 0;
-
-                int maxSalary = salaryReports.Any() ? salaryReports.Max(s => s.Salary) : 0;
-
-                var typicalTaskEntityList = await _dbContext.TypicalTasks.Where(c => c.CareerId == existingCareer.Id).ToArrayAsync();
-
-                var typicalTaskList =
-                    typicalTaskEntityList.Select(tt => new TypicalTaskList
-                    {
-                        Id = tt.Id,
-                        Description = tt.Description
-                    }).ToArray();
-
-                var careerCharacteristics = await _dbContext.Characteristics.ToArrayAsync();
-
-                var reviewsWithBulletPoints = await _dbContext.Reviews.Include(r => r.ReviewBulletPoints).Where(r => r.CareerId == existingCareer.Id).ToArrayAsync();
-
-                decimal averageReview = reviewsWithBulletPoints.Any() ? reviewsWithBulletPoints.Average(r => r.Rating) : 0.0m;
-
-                int reviewCount = reviewsWithBulletPoints.Length;
-
-                var careerDetailsModel = new CareerDetailsModel
-                {
-                    Id = existingCareer.Id,
-                    ProfessionName = existingCareer.Name,
-                    Description = existingCareer.Description,
-                    CareerImage = imageData.Image,
-                    categoryName = careerCategory.Name,
-                    SalaryRange = new SalaryRange { SalaryMin = minSalary, SalaryMax = maxSalary },
-                    TypicalTasks = typicalTaskList,
-                    CareerCharacteristics = careerCharacteristics,
-                    Reviews = reviewsWithBulletPoints,
-                    SalaryStatistics = salaryReports,
-                    AverageReviewAndReviewCount = new AverageReviewRatingAndReviewCount { AverageReviewRating = averageReview, ReviewCount = reviewCount }
-                };
-
-                return new GetDetailsCareerServiceResponseModel
-                {
-                    Success = true,
-                    Career = careerDetailsModel,
-                    ServerMessage = $"Career {careerId} has been successfully found."
-                };
+                return cachedCareerResponseModel;
 
             }
             catch (Exception ex)
@@ -398,6 +428,8 @@ namespace Final_project.Services
 
                 await _dbContext.SaveChangesAsync();
 
+                ClearCache();
+
                 return new CareerServiceResponseModel
                 {
                     Success = true,
@@ -419,12 +451,16 @@ namespace Final_project.Services
 
         public async Task<GetListCareerServiceResponseModel> GetListOfCareers(GetCareersListQueryModel queryParameters)
         {
+            _logger.LogInformation("GetListOfCareers service method started.");
+
             try
             {
                 int[] allowedRowsPerPage = { 5, 10, 15, 25, 50 };
 
                 if (!allowedRowsPerPage.Contains(queryParameters.RowsPerPage))
                 {
+                    _logger.LogError("Invalid RowsPerPage: {RowsPerPage}", queryParameters.RowsPerPage);
+
                     return new GetListCareerServiceResponseModel
                     {
                         Success = false,
@@ -435,6 +471,8 @@ namespace Final_project.Services
 
                 if (string.IsNullOrEmpty(queryParameters.Sorting))
                 {
+                    _logger.LogError("Invalid sorting: {sorting}", queryParameters.Sorting);
+
                     return new GetListCareerServiceResponseModel
                     {
                         Success = false,
@@ -515,6 +553,9 @@ namespace Final_project.Services
 
                 if (!_cache.TryGetValue(cacheKey, out GetListCareerServiceResponseModel cachedCareersListResponseModel))
                 {
+                    _logger.LogInformation("Cache miss. Fetching data from DB.");
+
+
                     var careerListToBeReturned = _dbContext.Careers
                     .Select(c => new CareerDto
                     {
@@ -561,6 +602,8 @@ namespace Final_project.Services
                         || queryParameters.AverageRatingRange != null || queryParameters.SalaryFilterQuery != null
                         || queryParameters.EducationTimeRange != null)
                     {
+
+                        _logger.LogDebug("Query Parameters checked: {@QueryParameters}", queryParameters);
 
 
                         if (queryParameters.FilterParameters != null)
@@ -764,6 +807,8 @@ namespace Final_project.Services
                             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
                         };
 
+
+                        _careerCacheKeys.Add(cacheKey.ToString());
                         _cache.Set(cacheKey, careerListResponseModel, cacheOptions);
 
                         return careerListResponseModel;
@@ -815,11 +860,16 @@ namespace Final_project.Services
                 }
                 else
                 {
+                    _logger.LogInformation("Cache hit. Returning cached result.");
+
                     return cachedCareersListResponseModel;
                 }
             }
             catch (Exception ex)
             {
+
+                _logger.LogError(ex, "An error occurred while fetching careers.");
+
                 return new GetListCareerServiceResponseModel
                 {
                     Careers = null,
@@ -1005,6 +1055,7 @@ namespace Final_project.Services
                 };
             }
         }
+
         private async Task<AverageReviewRatingResponse> GetAverageReviewAndReviewCount(int careerId)
         {
             try
@@ -1037,42 +1088,14 @@ namespace Final_project.Services
                 };
             }
         }
+
+        private void ClearCache()
+        {
+            foreach (string careerCacheKey in _careerCacheKeys)
+            {
+                _cache.Remove(careerCacheKey);
+
+            }
+        }
     }
 }
-
-
-
-{
-    Person person = new Person { Name = "Alice", Age = null };
-
-    var options = new JsonSerializerOptions
-    {
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-    };
-
-    string json = JsonSerializer.Serialize(person, options);
-    Console.WriteLine(json); // Output: {"Name":"Alice"}
-
-}
-public class Person
-{
-    [JsonPropertyName("full_name")]
-    public string Name { get; set; }
-    public int Age { get; set; }
-}
-
-public class test
-{
-    [JsonIgnore]
-    public string cope { get; set; }
-
-    public string axaxaxaxaxa { get; set; }
-
-
-}
-
-var options = new JsonSerializerOptions 
-{
-    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-    PropertyNamingPolicy = JsonNamingPolicy.
-};
