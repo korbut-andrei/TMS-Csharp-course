@@ -453,64 +453,23 @@ namespace Final_project.Services
         {
             _logger.LogInformation("GetListOfCareers service method started.");
 
+            var validationResults = new List<ValidationResult>();
+            var validationContext = new ValidationContext(queryParameters);
+
+            if (!Validator.TryValidateObject(queryParameters, validationContext, validationResults, true))
+            {
+                var errorMessages = validationResults.Select(v => v.ErrorMessage).ToList();
+                _logger.LogError("Validation errors: {ValidationErrors}", string.Join(", ", errorMessages));
+                return new GetListCareerServiceResponseModel
+                {
+                    Success = false,
+                    Careers = null,
+                    ServerMessage = string.Join("; ", errorMessages)
+                };
+            }
+
             try
             {
-                int[] allowedRowsPerPage = { 5, 10, 15, 25, 50 };
-
-                if (!allowedRowsPerPage.Contains(queryParameters.RowsPerPage))
-                {
-                    _logger.LogError("Invalid RowsPerPage: {RowsPerPage}", queryParameters.RowsPerPage);
-
-                    return new GetListCareerServiceResponseModel
-                    {
-                        Success = false,
-                        Careers = null,
-                        ServerMessage = $"You can only pick 5, 10, 15, 25, 50 items per page."
-                    };
-                }
-
-                if (string.IsNullOrEmpty(queryParameters.Sorting))
-                {
-                    _logger.LogError("Invalid sorting: {sorting}", queryParameters.Sorting);
-
-                    return new GetListCareerServiceResponseModel
-                    {
-                        Success = false,
-                        Careers = null,
-                        ServerMessage = "Sorting parameter can't be empty."
-                    };
-                }
-
-                if (queryParameters.Page <= 0)
-                {
-                    return new GetListCareerServiceResponseModel
-                    {
-                        Success = false,
-                        Careers = null,
-                        ServerMessage = $"Page parameter can't be empty or 0."
-                    };
-                }
-
-                if (queryParameters.RowsPerPage <= 0)
-                {
-                    return new GetListCareerServiceResponseModel
-                    {
-                        Success = false,
-                        Careers = null,
-                        ServerMessage = $"RowsPerPage parameter can't be empty."
-                    };
-                }
-
-                if (!Enum.TryParse<CareerListSortingOption>(queryParameters.Sorting, true, out var sortingOption) ||
-                    !Enum.IsDefined(typeof(CareerListSortingOption), sortingOption))
-                {
-                    return new GetListCareerServiceResponseModel
-                    {
-                        Success = false,
-                        Careers = null,
-                        ServerMessage = "Invalid sorting option."
-                    };
-                }
 
                 StringBuilder cacheKey = new StringBuilder();
                 cacheKey.Append($"careers_page_{queryParameters.Page}_pageSize_{queryParameters.RowsPerPage}_sortBy_{queryParameters.Sorting}");
@@ -760,7 +719,7 @@ namespace Final_project.Services
                             }
                         }
 
-                        var sortingResult = await SortList(careerListToBeReturned, sortingOption);
+                        var sortingResult = await SortList(careerListToBeReturned, queryParameters.Sorting);
 
                         if (sortingResult.Success != true)
                         {
@@ -815,7 +774,7 @@ namespace Final_project.Services
                     }
                     else
                     {
-                        var sortingResult = await SortList(careerListToBeReturned, sortingOption);
+                        var sortingResult = await SortList(careerListToBeReturned, queryParameters.Sorting);
                         if (sortingResult.Success != true)
                         {
                             return new GetListCareerServiceResponseModel
