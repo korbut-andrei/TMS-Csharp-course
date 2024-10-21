@@ -184,7 +184,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseSerilogRequestLogging();
-app.UseMiddleware<RequestTimingMiddleware>();
+//app.UseMiddleware<RequestTimingMiddleware>();
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
