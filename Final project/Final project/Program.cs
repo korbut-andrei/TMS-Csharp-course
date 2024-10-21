@@ -14,17 +14,27 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
 using Microsoft.AspNetCore.Server.HttpSys;
 using System.Security.Cryptography.X509Certificates;
-using Microsoft.Extensions.Caching.Memory; // Add this
-
+using Serilog;
+using Serilog.Events;
+using Microsoft.Extensions.Caching.Memory;
+using Final_project.CustomMiddlewares;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .WriteTo.Console() 
+    .WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ConfigureHttpsDefaults(httpsoptions =>
     {
         var pfxPath = @"C:\c#\TMS-git\Final project\Final project\Certificates\selfsigned.pfx";
-        var pfxPassword = "opensslpass"; // Use the password you set when creating the .pfx file
+        var pfxPassword = "opensslpass";
         //var certPath = @"C:\c#\TMS-git\Final project\Final project\Certificates\selfsigned.crt";
         //var keyPath = @"C:\c#\TMS-git\Final project\Final project\Certificates\selfsigned.key";
 
@@ -39,15 +49,12 @@ configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChan
 var connectionString = configuration["ConnectionStrings:ConnStr"] ?? Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
 var jwtSecret = configuration["JWT:Secret"] ?? Environment.GetEnvironmentVariable("JWT_SECRET");
 
-// For Entity Framework
 builder.Services.AddDbContext<CareerContext>(options => options.UseSqlServer(connectionString));
 
-// For Identity
 builder.Services.AddIdentity<UserEntity, ApplicationRole>()
     .AddEntityFrameworkStores<CareerContext>()
     .AddDefaultTokenProviders();
 
-// Adding Authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -55,7 +62,6 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 
-// Adding Jwt Bearer
 .AddJwtBearer(options =>
 {
     options.SaveToken = true;
@@ -75,16 +81,25 @@ builder.Services.AddAuthentication(options =>
     {
         OnTokenValidated = async context =>
         {
+            var _logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+
             Console.WriteLine("Claims:");
             foreach (var claim in context.Principal.Claims)
             {
                 Console.WriteLine($"{claim.Type}: {claim.Value}");
             }
 
+            _logger.LogDebug("Claims:");
+            foreach (var claim in context.Principal.Claims)
+            {
+                _logger.LogDebug($"{claim.Type}: {claim.Value}");
+            }
+
             var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<UserEntity>>();
             var userName = context.Principal.FindFirstValue(ClaimTypes.Name);
 
             Console.WriteLine($"userName: {userName}");
+            _logger.LogDebug($"userName: {userName}");
 
 
             var user = await userManager.FindByNameAsync(userName);
@@ -168,12 +183,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseSerilogRequestLogging();
+app.UseMiddleware<RequestTimingMiddleware>();
 
-// Authentication & Authorization
+app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
 app.Run();

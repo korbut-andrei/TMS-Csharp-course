@@ -168,8 +168,6 @@ namespace Final_project.Services
             }
         }
 
-
-
         public async Task<CareerServiceResponseModel> EditCareer(EditCareerModel editCareerModel)
         {
             try
@@ -513,7 +511,6 @@ namespace Final_project.Services
                 if (!_cache.TryGetValue(cacheKey, out GetListCareerServiceResponseModel cachedCareersListResponseModel))
                 {
                     _logger.LogInformation("Cache miss. Fetching data from DB.");
-
 
                     var careerListToBeReturned = _dbContext.Careers
                     .Select(c => new CareerDto
@@ -988,10 +985,10 @@ namespace Final_project.Services
         {
             try
             {
-                var salaryReports = _dbContext.SalaryReports
+                var salaryReports = await _dbContext.SalaryReports
                     .Where(sr => sr.CareerId == careerId && sr.IsApproved)
                     .Select(sr => sr.Salary)
-                    .ToList();
+                    .ToListAsync();
 
                 return new SalaryRangeResponse
                 {
@@ -1019,9 +1016,9 @@ namespace Final_project.Services
         {
             try
             {
-                var reviews = _dbContext.Reviews
+                var reviews = await _dbContext.Reviews
                 .Where(review => review.IsApproved && review.CareerId == careerId)
-                .ToList();
+                .ToListAsync();
 
                 decimal averageRating = reviews.Any() ? reviews.Average(review => review.Rating) : 0m;
                 int reviewCount = reviews.Count;
