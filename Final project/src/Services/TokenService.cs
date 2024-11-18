@@ -1,4 +1,5 @@
 ﻿using AndreiKorbut.CareerChoiceBackend.Entities;
+using CareerChoiceBackend.Interfaces;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;

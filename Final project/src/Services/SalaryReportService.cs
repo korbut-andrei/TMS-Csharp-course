@@ -1,6 +1,8 @@
-﻿namespace AndreiKorbut.CareerChoiceBackend.Services
+﻿using CareerChoiceBackend.Interfaces;
+
+namespace AndreiKorbut.CareerChoiceBackend.Services
 {
-    public class SalaryReportService
+    public class SalaryReportService : ISalaryReportService
     {
     }
 }

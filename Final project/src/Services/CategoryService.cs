@@ -1,10 +1,11 @@
-﻿using AndreiKorbut.CareerChoiceBackend.Entities.DbContexts;
-using AndreiKorbut.CareerChoiceBackend.Entities;
+﻿using AndreiKorbut.CareerChoiceBackend.Entities;
 using AndreiKorbut.CareerChoiceBackend.Models.POST;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using AndreiKorbut.CareerChoiceBackend.Models.General;
+using CareerChoiceBackend.Interfaces;
+using CareerChoiceBackend.Entities;
 
 namespace AndreiKorbut.CareerChoiceBackend.Services
 {
@@ -14,11 +15,11 @@ namespace AndreiKorbut.CareerChoiceBackend.Services
 
         private readonly CareerContext _dbContext;
 
-        private readonly ImageService _imageService;
+        private readonly IImageService _imageService;
 
-        private readonly DbRecordsCheckService _imageDbRecordsCheckService;
+        private readonly IDbRecordsCheckService _imageDbRecordsCheckService;
 
-        public CategoryService(CareerContext dbContext, ImageService imageService, DbRecordsCheckService imageDbRecordsCheckService)
+        public CategoryService(CareerContext dbContext, IImageService imageService, IDbRecordsCheckService imageDbRecordsCheckService)
         {
             _dbContext = dbContext;
             _imageService = imageService;

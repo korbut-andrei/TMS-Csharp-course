@@ -7,14 +7,14 @@ using AndreiKorbut.CareerChoiceBackend.Models.QueryModels;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
-namespace AndreiKorbut.CareerChoiceBackend.Services
+namespace CareerChoiceBackend.Interfaces
 {
     public interface ICareerService
     {
         Task<CareerServiceResponseModel> AddCareer(AddCareerModel addCareerModel);
 
         Task<CareerServiceResponseModel> EditCareer(EditCareerModel editCareerModel);
-        
+
         Task<GetDetailsCareerServiceResponseModel> GetCareer(int careerId);
 
         Task<CareerServiceResponseModel> DeleteCareer(int careerId);

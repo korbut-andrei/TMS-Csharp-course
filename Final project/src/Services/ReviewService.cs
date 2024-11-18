@@ -1,21 +1,22 @@
-﻿using AndreiKorbut.CareerChoiceBackend.Entities.DbContexts;
-using AndreiKorbut.CareerChoiceBackend.Entities;
+﻿using AndreiKorbut.CareerChoiceBackend.Entities;
 using AndreiKorbut.CareerChoiceBackend.Models.GETmodels;
 using AndreiKorbut.CareerChoiceBackend.Models.POST;
 using AndreiKorbut.CareerChoiceBackend.Models.General;
 using System.Diagnostics;
 using System;
 using Microsoft.AspNetCore.Identity;
+using CareerChoiceBackend.Interfaces;
+using CareerChoiceBackend.Entities;
 
 namespace AndreiKorbut.CareerChoiceBackend.Services
 {
-    public class ReviewService
+    public class ReviewService : IReviewService
     {
         private readonly CareerContext _dbContext;
 
-        private readonly DbRecordsCheckService _dbRecordsCheckService;
+        private readonly IDbRecordsCheckService _dbRecordsCheckService;
 
-        public ReviewService(CareerContext dbContext, DbRecordsCheckService dbRecordsCheckService)
+        public ReviewService(CareerContext dbContext, IDbRecordsCheckService dbRecordsCheckService)
         {
             _dbContext = dbContext;
             _dbRecordsCheckService = dbRecordsCheckService;

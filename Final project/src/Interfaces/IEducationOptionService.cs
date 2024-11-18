@@ -1,4 +1,4 @@
-﻿namespace AndreiKorbut.CareerChoiceBackend.Services
+﻿namespace CareerChoiceBackend.Interfaces
 {
     public interface IEducationOptionService
     {

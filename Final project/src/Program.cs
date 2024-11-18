@@ -5,7 +5,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using AndreiKorbut.CareerChoiceBackend.Entities.DbContexts;
 using AndreiKorbut.CareerChoiceBackend.Services;
 using AndreiKorbut.CareerChoiceBackend.Entities;
 using AndreiKorbut.CareerChoiceBackend.Models.Auth;
@@ -18,6 +17,8 @@ using Serilog;
 using Serilog.Events;
 using Microsoft.Extensions.Caching.Memory;
 using AndreiKorbut.CareerChoiceBackend.CustomMiddlewares;
+using CareerChoiceBackend.Interfaces;
+using CareerChoiceBackend.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -133,15 +134,15 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddScoped<ICareerService, CareerService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddScoped<IDbRecordsCheckService, DbRecordsCheckService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IAuthServce, AuthService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IHashHelper, HashHelper>();
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<HashHelper>();
-builder.Services.AddScoped<CareerService>();
-builder.Services.AddScoped<CategoryService>();
-builder.Services.AddScoped<ImageService>();
-builder.Services.AddScoped<DbRecordsCheckService>();
-builder.Services.AddScoped<ReviewService>();
-builder.Services.AddScoped<AuthService>();
-builder.Services.AddScoped<TokenService>();
 builder.Services.AddControllers();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

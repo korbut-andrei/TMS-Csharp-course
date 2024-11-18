@@ -3,7 +3,7 @@ using AndreiKorbut.CareerChoiceBackend.Models.GETmodels;
 using AndreiKorbut.CareerChoiceBackend.Models.POST;
 using Microsoft.AspNetCore.Identity;
 
-namespace AndreiKorbut.CareerChoiceBackend.Services
+namespace CareerChoiceBackend.Interfaces
 {
     public interface IUserService
     {

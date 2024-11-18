@@ -2,7 +2,7 @@
 using AndreiKorbut.CareerChoiceBackend.Models.POST;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AndreiKorbut.CareerChoiceBackend.Services
+namespace CareerChoiceBackend.Interfaces
 {
     public interface ICategoryService
     {

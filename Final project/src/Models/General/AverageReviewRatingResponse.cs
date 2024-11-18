@@ -1,6 +1,6 @@
 ﻿using AndreiKorbut.CareerChoiceBackend.Models.GET_models;
 
-namespace AndreiKorbut.CareerChoiceBackend.Services
+namespace CareerChoiceBackend.Models.General
 {
     public class AverageReviewRatingResponse
     {

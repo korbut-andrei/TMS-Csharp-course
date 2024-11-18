@@ -1,10 +1,11 @@
-﻿using AndreiKorbut.CareerChoiceBackend.Entities.DbContexts;
+﻿using CareerChoiceBackend.Entities;
+using CareerChoiceBackend.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace AndreiKorbut.CareerChoiceBackend.Services
 {
-    public class DbRecordsCheckService
+    public class DbRecordsCheckService : IDbRecordsCheckService
     {
         private readonly CareerContext _dbContext;
 

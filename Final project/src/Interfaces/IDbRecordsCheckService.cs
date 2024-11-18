@@ -4,7 +4,7 @@ using AndreiKorbut.CareerChoiceBackend.Models.POST;
 using AndreiKorbut.CareerChoiceBackend.Models.QueryModels;
 using System.ComponentModel.DataAnnotations;
 
-namespace AndreiKorbut.CareerChoiceBackend.Services
+namespace CareerChoiceBackend.Interfaces
 {
     public interface IDbRecordsCheckService
     {

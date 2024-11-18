@@ -1,11 +1,13 @@
 ﻿using AndreiKorbut.CareerChoiceBackend.Entities;
-using AndreiKorbut.CareerChoiceBackend.Entities.DbContexts;
 using AndreiKorbut.CareerChoiceBackend.Enums;
 using AndreiKorbut.CareerChoiceBackend.Models.General;
 using AndreiKorbut.CareerChoiceBackend.Models.GET_models;
 using AndreiKorbut.CareerChoiceBackend.Models.GETmodels;
 using AndreiKorbut.CareerChoiceBackend.Models.POST;
 using AndreiKorbut.CareerChoiceBackend.Models.QueryModels;
+using CareerChoiceBackend.Entities;
+using CareerChoiceBackend.Interfaces;
+using CareerChoiceBackend.Models.General;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -40,20 +42,23 @@ namespace AndreiKorbut.CareerChoiceBackend.Services
 
         private readonly CareerContext _dbContext;
 
-        private readonly ImageService _imageService;
+        private readonly IImageService _imageService;
 
-        private readonly HashHelper _hashHelper;
+        private readonly IHashHelper _hashHelper;
 
-        private readonly DbRecordsCheckService _dbRecordsCheckService;
-
-        private readonly ConcurrentBag<string> _careerCacheKeys;
+        private readonly IDbRecordsCheckService _dbRecordsCheckService;
 
         private readonly ILogger<CareerService> _logger;
 
+        private readonly ConcurrentBag<string> _careerCacheKeys;
 
-        public CareerService(CareerContext dbContext, ImageService imageService, 
-            DbRecordsCheckService dbRecordsCheckService, HashHelper hashHelper,
-            IMemoryCache memoryCache, ILogger<CareerService> logger)
+
+        public CareerService(CareerContext dbContext, 
+            IImageService imageService,
+            IDbRecordsCheckService dbRecordsCheckService, 
+            IHashHelper hashHelper,
+            IMemoryCache memoryCache, 
+            ILogger<CareerService> logger)
         {
             _dbContext = dbContext;
             _imageService = imageService;
@@ -110,7 +115,7 @@ namespace AndreiKorbut.CareerChoiceBackend.Services
                     {
                         Success = false,
                         Career = null,
-                        ServerMessage = $"Provided career categoryId doesn't exist."
+                        ServerMessage = $"Provided categoryId doesn't exist."
                     };
                 }
                 if (_dbRecordsCheckService.RecordExistsInDatabase(addCareerModel.Name, "Careers", "Name"))

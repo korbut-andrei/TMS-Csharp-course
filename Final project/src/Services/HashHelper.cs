@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using CareerChoiceBackend.Interfaces;
 
 namespace AndreiKorbut.CareerChoiceBackend.Services
 {

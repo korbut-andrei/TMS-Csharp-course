@@ -7,7 +7,7 @@ using AndreiKorbut.CareerChoiceBackend.Entities;
 using AndreiKorbut.CareerChoiceBackend.Models.Auth;
 
 
-namespace AndreiKorbut.CareerChoiceBackend.Entities.DbContexts
+namespace CareerChoiceBackend.Entities
 {
     public class CareerContext : IdentityDbContext<UserEntity, ApplicationRole, int,
     ApplicationUserClaim, ApplicationUserRole, ApplicationUserLogin,
@@ -19,7 +19,7 @@ namespace AndreiKorbut.CareerChoiceBackend.Entities.DbContexts
 
         }
 
-        public CareerContext( )
+        public CareerContext()
         {
 
         }
@@ -127,7 +127,7 @@ namespace AndreiKorbut.CareerChoiceBackend.Entities.DbContexts
             modelBuilder.Entity<ReviewEntity>()
                 .Property(r => r.Rating)
                 .HasColumnType("decimal(18,2)"); // Specify the precision and scale
-            
+
             modelBuilder.Entity<ReviewBulletPointEntity>()
             .HasOne(rbp => rbp.ReviewEntity)
             .WithMany(r => r.ReviewBulletPoints)

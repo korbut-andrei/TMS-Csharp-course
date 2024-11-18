@@ -1,9 +1,10 @@
 ﻿using AndreiKorbut.CareerChoiceBackend.Entities;
-using AndreiKorbut.CareerChoiceBackend.Entities.DbContexts;
 using AndreiKorbut.CareerChoiceBackend.Models.Auth;
 using AndreiKorbut.CareerChoiceBackend.Models.General;
 using AndreiKorbut.CareerChoiceBackend.Models.GETmodels;
 using AndreiKorbut.CareerChoiceBackend.Models.POST;
+using CareerChoiceBackend.Entities;
+using CareerChoiceBackend.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
@@ -18,25 +19,28 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace AndreiKorbut.CareerChoiceBackend.Services
 {
-    public class AuthService
+    public class AuthService : IAuthServce
     {
         private readonly CareerContext _dbContext;
 
-        private readonly DbRecordsCheckService _dbRecordsCheckService;
+        private readonly IDbRecordsCheckService _dbRecordsCheckService;
 
-        private readonly ImageService _imageService;
+        private readonly IImageService _imageService;
 
-        private readonly TokenService _tokenService;
+        private readonly ITokenService _tokenService;
 
         private readonly UserManager<UserEntity> _userManager;
+
         private readonly RoleManager<ApplicationRole> _roleManager;
+
         private readonly IConfiguration _configuration;
 
-        public AuthService(CareerContext dbContext, DbRecordsCheckService dbRecordsCheckService,
-            ImageService imageService,
+        public AuthService(CareerContext dbContext, 
+            IDbRecordsCheckService dbRecordsCheckService,
+            IImageService imageService,
             UserManager<UserEntity> userManager,
             RoleManager<ApplicationRole> roleManager,
-             TokenService tokenService,
+            ITokenService tokenService,
             IConfiguration configuration
             )
         {

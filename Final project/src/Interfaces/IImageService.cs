@@ -2,7 +2,7 @@
 using AndreiKorbut.CareerChoiceBackend.Models.GETmodels;
 using AndreiKorbut.CareerChoiceBackend.Models.POST;
 
-namespace AndreiKorbut.CareerChoiceBackend.Services
+namespace CareerChoiceBackend.Interfaces
 {
     public interface IImageService
     {

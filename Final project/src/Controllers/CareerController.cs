@@ -1,5 +1,4 @@
 ﻿using AndreiKorbut.CareerChoiceBackend.Entities;
-using AndreiKorbut.CareerChoiceBackend.Entities.DbContexts;
 using AndreiKorbut.CareerChoiceBackend.Enums;
 using AndreiKorbut.CareerChoiceBackend.Models;
 using AndreiKorbut.CareerChoiceBackend.Models.Auth;

@@ -1,9 +1,10 @@
 ﻿using AndreiKorbut.CareerChoiceBackend.Entities;
-using AndreiKorbut.CareerChoiceBackend.Entities.DbContexts;
 using AndreiKorbut.CareerChoiceBackend.Models.General;
 using AndreiKorbut.CareerChoiceBackend.Models.GET_models;
 using AndreiKorbut.CareerChoiceBackend.Models.GETmodels;
 using AndreiKorbut.CareerChoiceBackend.Models.POST;
+using CareerChoiceBackend.Entities;
+using CareerChoiceBackend.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;

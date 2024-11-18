@@ -1,5 +1,4 @@
-﻿using AndreiKorbut.CareerChoiceBackend.Entities.DbContexts;
-using AndreiKorbut.CareerChoiceBackend.Models.Auth;
+﻿using AndreiKorbut.CareerChoiceBackend.Models.Auth;
 using AndreiKorbut.CareerChoiceBackend.Models.POST;
 using AndreiKorbut.CareerChoiceBackend.Services;
 using Microsoft.AspNetCore.Authorization;

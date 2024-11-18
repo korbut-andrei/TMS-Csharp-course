@@ -1,6 +1,8 @@
-﻿namespace AndreiKorbut.CareerChoiceBackend.Services
+﻿using CareerChoiceBackend.Interfaces;
+
+namespace AndreiKorbut.CareerChoiceBackend.Services
 {
-    public class EducationOptionService
+    public class EducationOptionService : IEducationOptionService
     {
     }
 }
